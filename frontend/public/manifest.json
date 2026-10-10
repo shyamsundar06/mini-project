@@ -1,0 +1,18 @@
+{
+  "short_name": "IntelliTour",
+  "name": "Intelligent Tourism Management Platform",
+  "description": "Multi-agent intelligent tourism management platform with live GPS, voice assistant, and SOS emergency coordination.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/tourist",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "display": "standalone",
+  "orientation": "portrait"
+}
