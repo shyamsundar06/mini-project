@@ -84,29 +84,62 @@ exports.createTour = async (req, res) => {
         const tourId = `tour_${uuidv4().substring(0, 8)}`;
         const operatorId = 'op_1'; // Current or fallback operator
 
+        // Ensure fallback operator exists in operators table to satisfy foreign keys
+        try {
+            await query(
+                'INSERT OR IGNORE INTO operators (id, user_id, company_name, license_number, emergency_hotline) VALUES (?, ?, ?, ?, ?)',
+                [operatorId, 'usr_operator_1', 'Nilgiri Heritage Eco Tours Pvt Ltd', 'TN-TO-2024-8849', '+91 800 112 3344']
+            );
+        } catch (opErr) {
+            // Ignore if already exists or MySQL syntax
+        }
+
         await query(
             'INSERT INTO tours (id, operator_id, title, description, start_date, end_date, budget, max_capacity, status, primary_destination) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [tourId, operatorId, title, description || '', start_date, end_date, budget, max_capacity, 'ACTIVE', primary_destination]
         );
 
         // Insert destinations
-        for (let i = 0; i < destinations.length; i++) {
-            const d = destinations[i];
+        if (destinations && destinations.length > 0) {
+            for (let i = 0; i < destinations.length; i++) {
+                const d = destinations[i];
+                const destId = `dest_${uuidv4().substring(0, 8)}`;
+                await query(
+                    'INSERT INTO destinations (id, tour_id, name, description, latitude, longitude, order_index, arrival_time, departure_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [destId, tourId, d.name || primary_destination, d.description || '', d.latitude || 11.4190, d.longitude || 76.7112, i + 1, d.arrival_time || '09:00 AM', d.departure_time || '12:00 PM']
+                );
+            }
+        } else {
             const destId = `dest_${uuidv4().substring(0, 8)}`;
             await query(
                 'INSERT INTO destinations (id, tour_id, name, description, latitude, longitude, order_index, arrival_time, departure_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [destId, tourId, d.name, d.description || '', d.latitude || 11.4190, d.longitude || 76.7112, i + 1, d.arrival_time || '09:00 AM', d.departure_time || '12:00 PM']
+                [destId, tourId, primary_destination, `Primary destination for ${title}`, 11.4190, 76.7112, 1, '09:00 AM', '05:00 PM']
             );
         }
 
         // Insert activities
-        for (const act of activities) {
+        if (activities && activities.length > 0) {
+            for (const act of activities) {
+                const actId = `act_${uuidv4().substring(0, 8)}`;
+                await query(
+                    'INSERT INTO activities (id, tour_id, destination_id, title, description, activity_type, duration_minutes, cost, is_weather_sensitive, latitude, longitude, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [actId, tourId, act.destination_id || null, act.title, act.description || '', act.activity_type || 'sightseeing', act.duration_minutes || 60, act.cost || 0, act.is_weather_sensitive ? 1 : 0, act.latitude || 11.4190, act.longitude || 76.7112, 'SCHEDULED']
+                );
+            }
+        } else {
             const actId = `act_${uuidv4().substring(0, 8)}`;
             await query(
                 'INSERT INTO activities (id, tour_id, destination_id, title, description, activity_type, duration_minutes, cost, is_weather_sensitive, latitude, longitude, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [actId, tourId, act.destination_id || null, act.title, act.description || '', act.activity_type || 'sightseeing', act.duration_minutes || 60, act.cost || 0, act.is_weather_sensitive ? 1 : 0, act.latitude || 11.4190, act.longitude || 76.7112, 'SCHEDULED']
+                [actId, tourId, null, `${primary_destination} Exploration`, 'Guided tour and sightseeing', 'sightseeing', 90, 200, 1, 11.4190, 76.7112, 'SCHEDULED']
             );
         }
+
+        // Create default group
+        const grpId = `grp_${uuidv4().substring(0, 8)}`;
+        await query(
+            'INSERT INTO groups (id, tour_id, name, leader_name, leader_phone, color_hex, walking_preference, avg_age, common_interests, compatibility_score, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [grpId, tourId, `${title} - Group Alpha`, 'Tour Coordinator', '+91 98451 12345', '#10B981', 'Moderate', 30, 'Sightseeing, Nature', 95, 'ACTIVE']
+        );
 
         // Create default itinerary
         const itinId = `itin_${uuidv4().substring(0, 8)}`;

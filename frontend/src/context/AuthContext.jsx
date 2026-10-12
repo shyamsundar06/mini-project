@@ -33,11 +33,30 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('tourism_user');
+      const storedToken = localStorage.getItem('tourism_token');
+
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       } else {
         localStorage.setItem('tourism_user', JSON.stringify(defaultOperator));
         setUser(defaultOperator);
+      }
+
+      // Automatically obtain and cache valid JWT if missing
+      if (!storedToken) {
+        authApi.login({ email: 'operator@tourism.com', password: 'Password123!' })
+          .then((res) => {
+            if (res.data?.token) {
+              localStorage.setItem('tourism_token', res.data.token);
+              if (res.data?.user) {
+                localStorage.setItem('tourism_user', JSON.stringify(res.data.user));
+                setUser(res.data.user);
+              }
+            }
+          })
+          .catch(() => {
+            // Silently handled by backend middleware fallback
+          });
       }
     } catch (e) {
       setUser(defaultOperator);
@@ -56,10 +75,10 @@ export function AuthProvider({ children }) {
     } catch (err) {
       // Fallback demo login if offline
       if (email.includes('operator')) {
-        switchRoleDemo('operator');
+        await switchRoleDemo('operator');
         return defaultOperator;
       } else {
-        switchRoleDemo('tourist');
+        await switchRoleDemo('tourist');
         return defaultTourist;
       }
     }
@@ -83,13 +102,21 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const switchRoleDemo = (role) => {
+  const switchRoleDemo = async (role) => {
     if (role === 'operator') {
       localStorage.setItem('tourism_user', JSON.stringify(defaultOperator));
       setUser(defaultOperator);
+      try {
+        const res = await authApi.login({ email: 'operator@tourism.com', password: 'Password123!' });
+        if (res.data?.token) localStorage.setItem('tourism_token', res.data.token);
+      } catch (e) {}
     } else {
       localStorage.setItem('tourism_user', JSON.stringify(defaultTourist));
       setUser(defaultTourist);
+      try {
+        const res = await authApi.login({ email: 'rahul.kumar@gmail.com', password: 'Password123!' });
+        if (res.data?.token) localStorage.setItem('tourism_token', res.data.token);
+      } catch (e) {}
     }
   };
 

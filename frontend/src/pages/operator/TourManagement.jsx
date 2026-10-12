@@ -67,14 +67,56 @@ export default function TourManagement() {
     }
   };
 
+  const [submitting, setSubmitting] = useState(false);
+  const [createError, setCreateError] = useState('');
+
   const handleCreateTour = async (e) => {
     e.preventDefault();
+    setCreateError('');
+
+    if (!formData.title?.trim()) {
+      setCreateError('Tour title is required.');
+      return;
+    }
+    if (!formData.primary_destination?.trim()) {
+      setCreateError('Primary destination is required.');
+      return;
+    }
+
     try {
-      await tourApi.create(formData);
+      setSubmitting(true);
+      // Auto-update destinations to align with primary destination if default
+      const payload = {
+        ...formData,
+        destinations: formData.destinations?.length > 0 ? formData.destinations : [
+          { name: formData.primary_destination, latitude: 11.4190, longitude: 76.7112, arrival_time: '09:30 AM', departure_time: '05:00 PM' }
+        ]
+      };
+
+      await tourApi.create(payload);
       setShowCreateModal(false);
+      setFormData({
+        title: '',
+        description: '',
+        primary_destination: '',
+        start_date: '2026-09-01',
+        end_date: '2026-09-04',
+        budget: 180000,
+        max_capacity: 25,
+        destinations: [
+          { name: 'Ooty Botanical Gardens', latitude: 11.4190, longitude: 76.7112, arrival_time: '09:30 AM', departure_time: '12:00 PM' },
+          { name: 'Doddabetta Peak', latitude: 11.4010, longitude: 76.7350, arrival_time: '02:00 PM', departure_time: '04:30 PM' }
+        ],
+        activities: [
+          { title: 'Botanical Heritage Guided Tour', activity_type: 'sightseeing', duration_minutes: 90, cost: 150, is_weather_sensitive: true },
+          { title: 'Tea Processing & Tasting', activity_type: 'indoor', duration_minutes: 60, cost: 250, is_weather_sensitive: false }
+        ]
+      });
       fetchTours();
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      setCreateError(err.response?.data?.message || err.message || 'Failed to create tour');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -268,6 +310,12 @@ export default function TourManagement() {
             </div>
 
             <form onSubmit={handleCreateTour} className="space-y-4 text-xs">
+              {createError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-medium">
+                  {createError}
+                </div>
+              )}
+
               <div>
                 <label className="block text-slate-600 font-semibold mb-1">Tour Title</label>
                 <input
@@ -357,9 +405,10 @@ export default function TourManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-500/20"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md shadow-blue-500/20"
                 >
-                  Create Tour
+                  {submitting ? 'Creating...' : 'Create Tour'}
                 </button>
               </div>
             </form>
