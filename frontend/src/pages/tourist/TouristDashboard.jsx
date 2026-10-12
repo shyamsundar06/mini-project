@@ -22,9 +22,11 @@ import TouristFeedbackModal from '../../components/TouristFeedbackModal';
 import { useAuth } from '../../context/AuthContext';
 import { itineraryApi, broadcastApi } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function TouristDashboard() {
   const { user } = useAuth();
+  const { t, translateAnnouncement, translateActivity } = useLanguage();
   const [itineraryItem, setItineraryItem] = useState(null);
   const [allItineraryItems, setAllItineraryItems] = useState([]);
   const [broadcasts, setBroadcasts] = useState([]);
@@ -119,9 +121,10 @@ export default function TouristDashboard() {
   const totalCount = allItineraryItems.length || 4;
   const progressPercent = Math.round((completedCount / totalCount) * 100);
   const latestAlert = broadcasts[0];
+  const translatedLatestAlert = latestAlert ? translateAnnouncement(latestAlert.title, latestAlert.message) : null;
 
   return (
-    <div className="space-y-4 max-w-md mx-auto text-slate-800 pb-12">
+    <div className="space-y-4 max-w-md mx-auto text-slate-800 pb-12 animate-in fade-in duration-200">
       {/* High-Visibility Live Broadcast Banner if high priority */}
       {latestAlert &&
         (latestAlert.priority === 'HIGH' || latestAlert.priority === 'EMERGENCY') &&
@@ -132,8 +135,8 @@ export default function TouristDashboard() {
                 <Megaphone className="w-5 h-5 text-white" />
                 <span className="text-xs font-black uppercase tracking-wider">
                   {latestAlert.priority === 'EMERGENCY'
-                    ? '🚨 URGENT SAFETY ALERT'
-                    : '⚠️ LIVE ANNOUNCEMENT'}
+                    ? t('urgentSafetyAlert')
+                    : t('liveAnnouncement')}
                 </span>
               </div>
               <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded-full font-bold">
@@ -143,15 +146,15 @@ export default function TouristDashboard() {
                 })}
               </span>
             </div>
-            <h4 className="font-bold text-sm leading-tight">{latestAlert.title}</h4>
-            <p className="text-xs text-white/95 leading-relaxed">{latestAlert.message}</p>
+            <h4 className="font-bold text-sm leading-tight">{translatedLatestAlert.title}</h4>
+            <p className="text-xs text-white/95 leading-relaxed">{translatedLatestAlert.message}</p>
             <div className="pt-1 flex justify-end">
               <button
                 onClick={() => handleAcknowledge(latestAlert.id)}
                 className="px-3 py-1.5 bg-white text-slate-900 font-extrabold text-xs rounded-xl shadow-md flex items-center space-x-1.5 hover:bg-slate-100 transition-all"
               >
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Understood / I'm Safe</span>
+                <span>{t('understoodSafe')}</span>
               </button>
             </div>
           </div>
@@ -161,24 +164,24 @@ export default function TouristDashboard() {
       <div className="glass-panel p-5 rounded-3xl border border-slate-200 space-y-3 shadow-sm bg-white">
         <div className="flex items-center justify-between">
           <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
-            Active Tour
+            {t('activeTour')}
           </span>
-          <span className="text-[10px] text-slate-500 font-semibold">Day 1 of 4</span>
+          <span className="text-[10px] text-slate-500 font-semibold">{t('dayOf')}</span>
         </div>
 
         <div>
           <h2 className="text-lg font-bold text-slate-900 leading-tight">
-            Nilgiris Grand Heritage & Botanical Discovery
+            {t('tourTitle')}
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">Ooty & Nilgiri Hills, Tamil Nadu</p>
+          <p className="text-xs text-slate-500 mt-0.5">{t('tourDestination')}</p>
         </div>
 
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
           <span>
-            Welcome, <strong>{user?.name || 'Rahul Kumar'}</strong>
+            {t('welcome')} <strong>{user?.name || 'Rahul Kumar'}</strong>
           </span>
           <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            Checked In
+            {t('checkedIn')}
           </span>
         </div>
       </div>
@@ -188,18 +191,18 @@ export default function TouristDashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">My Group</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{t('myGroup')}</h3>
           </div>
           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-            96% Compatibility
+            {t('compatibility')}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-bold text-slate-900">Alpha - Nature Trekkers</h4>
+            <h4 className="text-sm font-bold text-slate-900">{t('groupNameAlpha')}</h4>
             <p className="text-[11px] text-slate-500 font-medium">
-              Lead: {touristInfo.leaderName} ({touristInfo.leaderPhone})
+              {t('groupLead')}
             </p>
           </div>
           <a
@@ -217,25 +220,26 @@ export default function TouristDashboard() {
           <div className="flex items-center space-x-2">
             <Megaphone className="w-4 h-4 text-indigo-600" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Guide Announcements
+              {t('guideAnnouncements')}
             </h3>
           </div>
-          <span className="text-[10px] text-slate-400 font-semibold">{broadcasts.length} total</span>
+          <span className="text-[10px] text-slate-400 font-semibold">{broadcasts.length} {t('total')}</span>
         </div>
 
         <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
           {broadcasts.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-3">No announcements yet.</p>
+            <p className="text-xs text-slate-400 text-center py-3">{t('noAnnouncements')}</p>
           ) : (
             broadcasts.map((bc) => {
               const isAcked = ackedIds.has(bc.id);
+              const transBc = translateAnnouncement(bc.title, bc.message);
               return (
                 <div
                   key={bc.id}
                   className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900">{bc.title}</span>
+                    <span className="font-bold text-slate-900">{transBc.title}</span>
                     <span className="text-[10px] text-slate-400">
                       {new Date(bc.created_at).toLocaleTimeString([], {
                         hour: '2-digit',
@@ -243,7 +247,7 @@ export default function TouristDashboard() {
                       })}
                     </span>
                   </div>
-                  <p className="text-slate-600 text-[11px] leading-relaxed">{bc.message}</p>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">{transBc.message}</p>
                   <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
                     <span className="text-slate-400">{bc.sender_name}</span>
                     <button
@@ -255,7 +259,7 @@ export default function TouristDashboard() {
                           : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
                       }`}
                     >
-                      {isAcked ? '✓ Acknowledged' : 'Confirm Receipt'}
+                      {isAcked ? t('acknowledged') : t('confirmReceipt')}
                     </button>
                   </div>
                 </div>
@@ -271,14 +275,14 @@ export default function TouristDashboard() {
           <div className="flex items-center space-x-2">
             <CalendarDays className="w-4 h-4 text-blue-600" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              Today's Tour Schedule
+              {t('todaySchedule')}
             </h3>
           </div>
           <button
             onClick={() => setShowFullSchedule(!showFullSchedule)}
             className="text-xs font-bold text-blue-600 flex items-center space-x-1"
           >
-            <span>{showFullSchedule ? 'Collapse' : 'Expand'}</span>
+            <span>{showFullSchedule ? t('collapse') : t('expand')}</span>
             {showFullSchedule ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
@@ -286,9 +290,9 @@ export default function TouristDashboard() {
         {/* Progress Bar */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-            <span>Activity Progress</span>
+            <span>{t('activityProgress')}</span>
             <span>
-              {completedCount} of {totalCount} completed ({progressPercent}%)
+              {completedCount} of {totalCount} {t('completed')} ({progressPercent}%)
             </span>
           </div>
           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -303,6 +307,7 @@ export default function TouristDashboard() {
           <div className="space-y-3 pt-2">
             {allItineraryItems.map((item, idx) => {
               const isChecked = !!checkedActivities[item.id];
+              const transAct = translateActivity(item.title, item.description, idx);
               return (
                 <div
                   key={item.id}
@@ -319,7 +324,7 @@ export default function TouristDashboard() {
                       </span>
                       {item.is_alternative ? (
                         <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 text-[9px] font-bold">
-                          AI Reroute
+                          {t('alternativeRoute')}
                         </span>
                       ) : null}
                     </div>
@@ -334,7 +339,7 @@ export default function TouristDashboard() {
                       }`}
                     >
                       <CheckCircle className="w-3.5 h-3.5" />
-                      <span>{isChecked ? 'Completed' : 'Check In'}</span>
+                      <span>{isChecked ? t('checkinComplete') : t('markDone')}</span>
                     </button>
                   </div>
 
@@ -344,9 +349,9 @@ export default function TouristDashboard() {
                         isChecked ? 'text-emerald-950 line-through opacity-80' : 'text-slate-900'
                       }`}
                     >
-                      {item.title}
+                      {transAct.title}
                     </h4>
-                    <p className="text-slate-500 text-[11px] mt-0.5 leading-snug">{item.description}</p>
+                    <p className="text-slate-500 text-[11px] mt-0.5 leading-snug">{transAct.desc}</p>
                   </div>
 
                   <div className="flex items-center space-x-1.5 text-slate-400 text-[10px] pt-1 border-t border-slate-100">

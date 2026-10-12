@@ -160,80 +160,34 @@ export default function OperatorLayout() {
               <span>Tour: Nilgiris Grand Heritage & Botanical Discovery</span>
             </span>
 
-            {/* Mode Selector */}
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
-              <button
-                onClick={() => !isDemoMode && toggleDemoMode()}
-                className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                  isDemoMode ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Simulation Mode
-              </button>
-              <button
-                onClick={() => isDemoMode && toggleDemoMode()}
-                className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                  !isDemoMode ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Live Production
-              </button>
-            </div>
+            {/* Live Production Status Badge */}
+            <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center space-x-1.5 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live Production Mode</span>
+            </span>
           </div>
 
-          {/* Quick Simulation Controls & Notification Center */}
-          <div className="flex items-center space-x-3">
-            {isDemoMode && (
-              <div className="hidden lg:flex items-center space-x-2">
-                <button
-                  onClick={() => setIsAutoWalking(!isAutoWalking)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border flex items-center space-x-1.5 transition-all ${
-                    isAutoWalking
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700 animate-pulse'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm'
-                  }`}
-                >
-                  <Radio className="w-3.5 h-3.5" />
-                  <span>{isAutoWalking ? 'GPS Telemetry Streaming' : 'Start GPS Stream'}</span>
-                </button>
-
-                <button
-                  onClick={triggerWeatherDisruption}
-                  disabled={simLoading}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 flex items-center space-x-1.5 transition-all shadow-sm"
-                >
-                  <CloudRain className="w-3.5 h-3.5" />
-                  <span>Simulate Rain Spike</span>
-                </button>
-
-                <button
-                  onClick={triggerEmergencySOS}
-                  disabled={simLoading}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 flex items-center space-x-1.5 transition-all shadow-sm"
-                >
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>Simulate SOS</span>
-                </button>
-
-                <button
-                  onClick={resetSimulation}
-                  disabled={simLoading}
-                  title="Reset Demo Baseline"
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 bg-white"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
+          {/* Action Controls: Simulate SOS, Broadcast, and Notifications */}
+          <div className="flex items-center space-x-2.5">
+            {/* Simulate SOS Button */}
+            <button
+              onClick={triggerEmergencySOS}
+              disabled={simLoading}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 flex items-center space-x-1.5 transition-all shadow-xs"
+              title="Simulate tourist emergency SOS event"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+              <span>Simulate SOS</span>
+            </button>
 
             {/* Broadcast Announcement Button */}
             <button
               onClick={() => setShowBroadcastModal(true)}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center space-x-1.5 transition-all shadow-xs"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center space-x-1.5 transition-all shadow-xs"
               title="Broadcast instant announcements to tourists"
             >
               <Megaphone className="w-3.5 h-3.5 text-indigo-600" />
-              <span className="hidden sm:inline">Broadcast</span>
+              <span>Broadcast</span>
             </button>
 
             {/* Notifications Dropdown */}

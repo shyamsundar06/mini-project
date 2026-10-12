@@ -29,22 +29,34 @@ exports.getAllGroups = async (req, res) => {
     }
 };
 
+exports.getStrategies = async (req, res) => {
+    try {
+        res.json({ success: true, strategies: groupAgent.getStrategies() });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 /**
  * Run AI Grouping Engine without applying immediately
  */
 exports.generateAIGroups = async (req, res) => {
     try {
-        const { tour_id = 'tour_ooty_nilgiris' } = req.body;
+        const { tour_id = 'tour_ooty_nilgiris', strategy_id, iteration } = req.body;
         const tourists = await query('SELECT * FROM tourists WHERE tour_id = ? OR tour_id IS NULL', [tour_id]);
 
-        const clusters = groupAgent.clusterTourists(tourists);
+        const result = groupAgent.clusterTourists(tourists, strategy_id, iteration);
 
         res.json({
             success: true,
             tour_id,
-            recommendedGroups: clusters,
+            recommendedGroups: result.groups,
+            strategyId: result.strategyId,
+            strategyName: result.strategyName,
+            strategyBadge: result.strategyBadge,
+            strategyDescription: result.strategyDescription,
             totalTourists: tourists.length,
-            message: 'Adaptive AI clustering completed. Ready for operator approval.'
+            message: `Adaptive AI clustering completed using ${result.strategyName}. Ready for operator approval.`
         });
     } catch (err) {
         console.error('[GroupController] generateAIGroups error:', err);
@@ -62,7 +74,8 @@ exports.approveAIGroups = async (req, res) => {
         let clusters = groups;
         if (!clusters || clusters.length === 0) {
             const tourists = await query('SELECT * FROM tourists WHERE tour_id = ?', [tour_id]);
-            clusters = groupAgent.clusterTourists(tourists);
+            const result = groupAgent.clusterTourists(tourists);
+            clusters = result.groups;
         }
 
         // Clear existing group members for the tour

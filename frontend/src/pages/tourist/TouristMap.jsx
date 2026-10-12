@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
-import { AlertTriangle, Compass, Navigation } from 'lucide-react';
+import {
+  AlertTriangle,
+  Compass,
+  Navigation,
+  Lock,
+  Unlock,
+  KeyRound,
+  ShieldCheck,
+  UserCheck,
+  Sparkles
+} from 'lucide-react';
 import { locationApi } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Custom Marker
 const createMarkerIcon = (colorHex = '#3B82F6', label = 'You') => {
@@ -51,12 +62,46 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
 }
 
 export default function TouristMap() {
+  const { t } = useLanguage();
   const [tourists, setTourists] = useState([]);
   const myLat = 11.4192;
   const myLng = 76.7115;
   const { lastLocationEvent } = useSocket();
 
+  // Map Verification State (Requires dummy ID and password to access)
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    return sessionStorage.getItem('tourist_map_unlocked') === 'true';
+  });
+  const [touristId, setTouristId] = useState(() => {
+    return sessionStorage.getItem('tourist_active_id') || '';
+  });
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (!touristId.trim()) {
+      setAuthError('Please enter any Tourist ID');
+      return;
+    }
+    if (!password.trim()) {
+      setAuthError('Please enter any Password');
+      return;
+    }
+    sessionStorage.setItem('tourist_map_unlocked', 'true');
+    sessionStorage.setItem('tourist_active_id', touristId.trim());
+    setIsUnlocked(true);
+    setAuthError('');
+  };
+
+  const handleLock = () => {
+    sessionStorage.removeItem('tourist_map_unlocked');
+    setIsUnlocked(false);
+    setPassword('');
+  };
+
   useEffect(() => {
+    if (!isUnlocked) return;
     async function load() {
       try {
         const res = await locationApi.getLive('tour_ooty_nilgiris');
@@ -66,7 +111,7 @@ export default function TouristMap() {
       }
     }
     load();
-  }, [lastLocationEvent]);
+  }, [lastLocationEvent, isUnlocked]);
 
   // Calculate Group Alpha center
   const alphaMembers = tourists.filter((t) => t.group_id === 'grp_alpha' && t.id !== 'trt_1');
@@ -82,26 +127,130 @@ export default function TouristMap() {
 
   const isStraying = distFromGroup > 250;
 
+  // Render Verification Gate if not unlocked
+  if (!isUnlocked) {
+    return (
+      <div className="max-w-md mx-auto h-[calc(100vh-10rem)] flex flex-col justify-center items-center p-2 text-slate-800">
+        <div className="w-full bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mx-auto shadow-lg shadow-blue-500/25 text-white">
+              <KeyRound className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
+                🔒 GPS Access Verification
+              </span>
+              <h2 className="text-base font-extrabold text-slate-900 mt-1">
+                {t('mapGateTitle')}
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 leading-snug">
+              {t('mapGateSub')}
+            </p>
+          </div>
+
+          <form onSubmit={handleUnlock} className="space-y-3.5 text-xs">
+            {authError && (
+              <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-[11px] font-semibold text-center">
+                {authError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-slate-600 font-bold mb-1">
+                {t('touristIdLabel')}
+              </label>
+              <input
+                type="text"
+                required
+                value={touristId}
+                onChange={(e) => setTouristId(e.target.value)}
+                placeholder={t('touristIdPlaceholder')}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-600 font-bold mb-1">
+                {t('passwordLabel')}
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t('passwordPlaceholder')}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 transition-all"
+              />
+            </div>
+
+            <div className="p-2.5 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[11px] text-amber-800 flex items-start space-x-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+              <span>{t('mapGateHint')}</span>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 flex items-center justify-center space-x-2 transition-all active:scale-[0.98]"
+            >
+              <Unlock className="w-4 h-4" />
+              <span>{t('unlockMapBtn')}</span>
+            </button>
+
+            {/* 1-Click Quick Demo Fill */}
+            <button
+              type="button"
+              onClick={() => {
+                setTouristId('TRT-101');
+                setPassword('1234');
+                sessionStorage.setItem('tourist_map_unlocked', 'true');
+                sessionStorage.setItem('tourist_active_id', 'TRT-101');
+                setIsUnlocked(true);
+              }}
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-semibold text-[11px] transition-all"
+            >
+              ⚡ Quick 1-Click Demo Fill (TRT-101 / 1234)
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-3 max-w-md mx-auto h-[calc(100vh-10rem)] flex flex-col text-slate-800">
+    <div className="space-y-3 max-w-md mx-auto h-[calc(100vh-10rem)] flex flex-col text-slate-800 animate-in fade-in duration-200">
       <div className="flex items-center justify-between pb-1 border-b border-slate-200 shrink-0">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Live Group Map</h2>
-          <p className="text-[11px] text-slate-500 font-medium">Ooty Botanical Gardens Zone</p>
+          <div className="flex items-center space-x-2">
+            <h2 className="text-base font-bold text-slate-900">{t('liveGroupMap')}</h2>
+            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-extrabold border border-blue-200">
+              ID: {touristId || 'Verified'}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 font-medium">{t('gardenZone')}</p>
         </div>
-        <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
-          GPS Live (5m)
-        </span>
+        <div className="flex items-center space-x-1.5">
+          <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
+            GPS Live
+          </span>
+          <button
+            onClick={handleLock}
+            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
+            title="Lock Map"
+          >
+            <Lock className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Straying Alert Warning Pill */}
       {isStraying && (
-        <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-center space-x-2 animate-pulse shadow-sm">
+        <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-center space-x-2 animate-pulse shadow-sm shrink-0">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
           <div>
-            <p className="font-bold">Group Distance Alert</p>
+            <p className="font-bold">{t('groupDistAlert')}</p>
             <p className="text-[11px] text-amber-800">
-              You are {distFromGroup}m away from Group Alpha center. Follow the dashed line to rejoin.
+              {distFromGroup}{t('distanceFromGroup')}. {t('rejoinPrompt')}
             </p>
           </div>
         </div>
@@ -115,18 +264,20 @@ export default function TouristMap() {
           className="w-full h-full"
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; Google Maps"
+            url="https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+            maxZoom={20}
           />
 
           {/* User's Marker */}
-          <Marker position={[myLat, myLng]} icon={createMarkerIcon('#10B981', 'You')}>
+          <Marker position={[myLat, myLng]} icon={createMarkerIcon('#10B981', touristId || 'You')}>
             <Popup>
               <div className="p-1 text-xs">
-                <p className="font-bold text-slate-900">Your Current Position</p>
-                <p className="text-slate-600">Group Alpha Leader</p>
+                <p className="font-bold text-slate-900">{t('yourPosition')}</p>
+                <p className="text-slate-600">{touristId || t('groupLeader')}</p>
                 <p className="text-[10px] text-slate-400">
-                  {distFromGroup > 0 ? `${distFromGroup}m from group center` : 'At group centroid'}
+                  {distFromGroup > 0 ? `${distFromGroup}m ${t('distanceFromGroup')}` : 'At group centroid'}
                 </p>
               </div>
             </Popup>

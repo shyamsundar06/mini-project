@@ -25,7 +25,7 @@ export const DEMO_SCENARIO_STEPS = [
 ];
 
 export function SimulationProvider({ children }) {
-  const [isDemoMode, setIsDemoMode] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isAutoWalking, setIsAutoWalking] = useState(false);
   const [simLoading, setSimLoading] = useState(false);

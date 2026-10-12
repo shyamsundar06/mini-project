@@ -10,11 +10,22 @@ import {
   Languages,
   HeartPulse,
   ShieldCheck,
-  Zap
+  Zap,
+  SlidersHorizontal,
+  Info
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { groupApi } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
+
+const STRATEGIES = [
+  { id: 'AUTO', name: 'Dynamic Auto-Cycle', badge: '🔄 Next Strategy', desc: 'Cycles through alternative optimization passes' },
+  { id: 'PACE_MOBILITY', name: 'Pace & Mobility Synergy', badge: '🚶 Pace Focused', desc: 'Clusters by walking speed, stamina, and trek agility' },
+  { id: 'LANGUAGE_CULTURE', name: 'Language & Conversational Affinity', badge: '🗣️ Language Synergy', desc: 'Maximizes fluent communication and regional camaraderie' },
+  { id: 'INTEREST_THEMATIC', name: 'Interest & Thematic Passion', badge: '🎯 Interest Aligned', desc: 'Aligns travelers by wildlife, adventure, or arts/heritage' },
+  { id: 'AGE_COHORTS', name: 'Demographic Peer Cohorts', badge: '👥 Age Cohorts', desc: 'Balances generational brackets for natural social bonding' },
+  { id: 'BALANCED_HYBRID', name: 'Multi-Factor Global Synergy', badge: '⚖️ Global Harmony', desc: 'Balances size and mutuality via multi-attribute swaps' },
+];
 
 export default function AdaptiveGrouping() {
   const [groups, setGroups] = useState([]);
@@ -22,6 +33,9 @@ export default function AdaptiveGrouping() {
   const [generating, setGenerating] = useState(false);
   const [approving, setApproving] = useState(false);
   const [recommendedClusters, setRecommendedClusters] = useState(null);
+  const [activeStrategy, setActiveStrategy] = useState(null);
+  const [selectedStrategyId, setSelectedStrategyId] = useState('AUTO');
+  const [iterationCount, setIterationCount] = useState(0);
   const [selectedTouristToMove, setSelectedTouristToMove] = useState(null);
   const [selectedTargetGroup, setSelectedTargetGroup] = useState('');
   const { lastGroupEvent } = useSocket();
@@ -44,12 +58,37 @@ export default function AdaptiveGrouping() {
     fetchGroups();
   }, [lastGroupEvent]);
 
-  const handleGenerateAI = async () => {
+  // Map of tourist id -> original group id
+  const originalGroupMap = {};
+  const originalGroupNameMap = {};
+  groups.forEach((g) => {
+    (g.members || []).forEach((m) => {
+      originalGroupMap[m.id] = g.id;
+      originalGroupNameMap[m.id] = g.name?.split('-')[0]?.trim() || g.name;
+    });
+  });
+
+  const handleGenerateAI = async (strategyOverride = null) => {
     try {
       setGenerating(true);
-      const res = await groupApi.generateAI({ tour_id: 'tour_ooty_nilgiris' });
+      const strat = strategyOverride || selectedStrategyId;
+      const nextIteration = iterationCount + 1;
+      setIterationCount(nextIteration);
+
+      const res = await groupApi.generateAI({
+        tour_id: 'tour_ooty_nilgiris',
+        strategy_id: strat,
+        iteration: nextIteration
+      });
+
       if (res.data?.recommendedGroups) {
         setRecommendedClusters(res.data.recommendedGroups);
+        setActiveStrategy({
+          id: res.data.strategyId,
+          name: res.data.strategyName,
+          badge: res.data.strategyBadge,
+          description: res.data.strategyDescription
+        });
       }
     } catch (err) {
       alert(err.message);
@@ -68,13 +107,14 @@ export default function AdaptiveGrouping() {
 
       // Trigger Confetti Celebration
       confetti({
-        particleCount: 80,
-        spread: 70,
+        particleCount: 90,
+        spread: 75,
         origin: { y: 0.6 }
       });
 
       setRecommendedClusters(null);
-      fetchGroups();
+      setActiveStrategy(null);
+      await fetchGroups();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -91,7 +131,7 @@ export default function AdaptiveGrouping() {
         target_group_id: selectedTargetGroup
       });
       setSelectedTouristToMove(null);
-      fetchGroups();
+      await fetchGroups();
     } catch (err) {
       alert(err.message);
     }
@@ -99,10 +139,22 @@ export default function AdaptiveGrouping() {
 
   const activeDisplayGroups = recommendedClusters || groups;
 
+  // Calculate how many tourists were moved in this recommendation
+  let movedCount = 0;
+  if (recommendedClusters) {
+    recommendedClusters.forEach((g) => {
+      (g.members || []).forEach((m) => {
+        if (originalGroupMap[m.id] && originalGroupMap[m.id] !== g.id) {
+          movedCount++;
+        }
+      });
+    });
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto text-slate-800">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-200">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-200">
         <div>
           <div className="flex items-center space-x-2">
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center space-x-1">
@@ -112,46 +164,95 @@ export default function AdaptiveGrouping() {
           </div>
           <h2 className="text-2xl font-extrabold mt-1 text-slate-900 tracking-tight">Adaptive Grouping System</h2>
           <p className="text-xs text-slate-600 mt-1">
-            Dynamically partitions tourists into compatible micro-groups based on walking pace, language, interests, age proximity, and accessibility.
+            Dynamically partitions tourists across groups based on walking pace, mother tongue, shared passions, age cohorts, and pairwise compatibility.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Strategy Selector */}
+          <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-2xl">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+            <select
+              value={selectedStrategyId}
+              onChange={(e) => {
+                setSelectedStrategyId(e.target.value);
+                handleGenerateAI(e.target.value);
+              }}
+              className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+            >
+              {STRATEGIES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.badge} - {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
-            onClick={handleGenerateAI}
+            onClick={() => handleGenerateAI()}
             disabled={generating}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center space-x-2 transition-all"
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center space-x-2 transition-all cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-            <span>{generating ? 'Clustering Tourists...' : 'Regenerate AI Groups'}</span>
+            <span>{generating ? 'Re-clustering Tourists...' : 'Regenerate AI Groups'}</span>
           </button>
 
           <button
             onClick={handleApproveGroups}
-            disabled={approving}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 flex items-center space-x-2 transition-all"
+            disabled={approving || !recommendedClusters}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 flex items-center space-x-2 transition-all cursor-pointer"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>Approve & Sync Groups</span>
+            <span>{approving ? 'Applying...' : 'Approve & Sync Groups'}</span>
           </button>
         </div>
       </div>
 
       {/* Recommended Preview Banner if AI Regenerated */}
       {recommendedClusters && (
-        <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl flex items-center justify-between animate-pulse">
-          <div className="flex items-center space-x-3">
-            <Sparkles className="w-5 h-5 text-indigo-600 shrink-0" />
-            <p className="text-xs text-indigo-900">
-              <strong>AI Recommendation Ready:</strong> Optimized 3 clusters with average 94% compatibility. Click "Approve & Sync" to apply to live tour.
-            </p>
+        <div className="bg-gradient-to-r from-indigo-50 via-blue-50 to-emerald-50 border border-indigo-200 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs animate-in fade-in">
+          <div className="flex items-start md:items-center space-x-3">
+            <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5 md:mt-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2 flex-wrap">
+                <span className="font-extrabold text-indigo-950 text-sm">
+                  {activeStrategy?.name || 'AI Optimization Complete'}
+                </span>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
+                  {activeStrategy?.badge || '⚡ Optimized'}
+                </span>
+                {movedCount > 0 && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    🔄 {movedCount} Tourists Reassigned
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-indigo-900 mt-0.5">
+                {activeStrategy?.description} — Review the redistributed members below, then click <strong>Approve & Sync</strong> to update live tours.
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => setRecommendedClusters(null)}
-            className="text-xs text-indigo-700 hover:text-indigo-900 px-3 py-1 bg-white border border-indigo-200 rounded-lg font-bold"
-          >
-            Discard
-          </button>
+          <div className="flex items-center space-x-2 shrink-0 self-end md:self-center">
+            <button
+              onClick={() => {
+                setRecommendedClusters(null);
+                setActiveStrategy(null);
+              }}
+              className="text-xs text-slate-600 hover:text-slate-900 px-3 py-1.5 bg-white border border-slate-200 rounded-xl font-bold shadow-xs hover:bg-slate-50 transition-all cursor-pointer"
+            >
+              Discard Preview
+            </button>
+            <button
+              onClick={handleApproveGroups}
+              disabled={approving}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-all cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Approve & Sync</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -169,7 +270,7 @@ export default function AdaptiveGrouping() {
             />
 
             <div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
                     <span>{grp.name}</span>
@@ -179,7 +280,7 @@ export default function AdaptiveGrouping() {
                   </p>
                 </div>
 
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <span className="px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs">
                     {grp.compatibility_score}% Match
                   </span>
@@ -197,7 +298,7 @@ export default function AdaptiveGrouping() {
                   <span>Avg Age: {grp.avg_age} yrs</span>
                 </div>
                 <div className="flex items-center space-x-1.5 col-span-2">
-                  <HeartPulse className="w-3.5 h-3.5 text-slate-400" />
+                  <HeartPulse className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span className="truncate">{grp.common_interests}</span>
                 </div>
               </div>
@@ -210,45 +311,64 @@ export default function AdaptiveGrouping() {
                 </div>
 
                 <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                  {grp.members?.map((m) => (
-                    <div
-                      key={m.id}
-                      className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs hover:bg-slate-100 transition-colors"
-                    >
-                      <div className="flex items-center space-x-2.5 min-w-0">
-                        <div
-                          className="w-7 h-7 rounded-lg text-white font-bold text-[11px] flex items-center justify-center shrink-0 shadow-xs"
-                          style={{ backgroundColor: grp.color_hex || '#3B82F6' }}
-                        >
-                          {m.name?.charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-slate-800 truncate">{m.name}</p>
-                          <p className="text-[10px] text-slate-500">
-                            {m.age}y • {m.preferred_language} • {m.walking_preference}
-                          </p>
-                        </div>
-                      </div>
+                  {grp.members?.map((m) => {
+                    const wasInDifferentGroup =
+                      recommendedClusters &&
+                      originalGroupMap[m.id] &&
+                      originalGroupMap[m.id] !== grp.id;
+                    const prevGroupName = originalGroupNameMap[m.id];
 
-                      <div className="flex items-center space-x-2 shrink-0">
-                        <span className="text-[11px] font-bold text-emerald-600">
-                          {m.compatibility_score || m.individualScore || grp.compatibility_score}%
-                        </span>
-                        <button
-                          onClick={() => {
-                            setSelectedTouristToMove({ ...m, group_id: grp.id });
-                            setSelectedTargetGroup(
-                              activeDisplayGroups.find((g) => g.id !== grp.id)?.id || ''
-                            );
-                          }}
-                          title="Move to another group"
-                          className="p-1 rounded bg-white hover:bg-slate-100 text-slate-500 hover:text-blue-600 border border-slate-200"
-                        >
-                          <ArrowRightLeft className="w-3 h-3" />
-                        </button>
+                    return (
+                      <div
+                        key={m.id}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-colors ${
+                          wasInDifferentGroup
+                            ? 'bg-amber-50/70 border-amber-200 hover:bg-amber-100/70'
+                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <div
+                            className="w-7 h-7 rounded-lg text-white font-bold text-[11px] flex items-center justify-center shrink-0 shadow-xs"
+                            style={{ backgroundColor: grp.color_hex || '#3B82F6' }}
+                          >
+                            {m.name?.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center space-x-1.5">
+                              <p className="font-bold text-slate-800 truncate">{m.name}</p>
+                              {wasInDifferentGroup && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 bg-amber-200 text-amber-800 rounded-md shrink-0">
+                                  Moved from {prevGroupName}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-500">
+                              {m.age}y • {m.preferred_language} • {m.walking_preference}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 shrink-0">
+                          <span className="text-[11px] font-bold text-emerald-600">
+                            {m.individualScore || m.compatibility_score || grp.compatibility_score}%
+                          </span>
+                          <button
+                            onClick={() => {
+                              setSelectedTouristToMove({ ...m, group_id: grp.id });
+                              setSelectedTargetGroup(
+                                activeDisplayGroups.find((g) => g.id !== grp.id)?.id || ''
+                              );
+                            }}
+                            title="Move to another group"
+                            className="p-1 rounded bg-white hover:bg-slate-100 text-slate-500 hover:text-blue-600 border border-slate-200 cursor-pointer"
+                          >
+                            <ArrowRightLeft className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -285,13 +405,13 @@ export default function AdaptiveGrouping() {
             <div className="flex items-center space-x-3 pt-2">
               <button
                 onClick={() => setSelectedTouristToMove(null)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleMoveTourist}
-                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 cursor-pointer"
               >
                 Confirm Move
               </button>

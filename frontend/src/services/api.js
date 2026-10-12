@@ -59,6 +59,7 @@ export const touristApi = {
 // Group APIs
 export const groupApi = {
   getAll: (tourId) => api.get(`/groups${tourId ? `?tour_id=${tourId}` : ''}`),
+  getStrategies: () => api.get('/groups/strategies'),
   generateAI: (data) => api.post('/groups/generate-ai', data),
   approveAI: (data) => api.post('/groups/approve-ai', data),
   moveTourist: (data) => api.post('/groups/move-tourist', data),

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { SimulationProvider } from './context/SimulationContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 // Layouts
 import OperatorLayout from './layouts/OperatorLayout';
@@ -135,11 +136,13 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <SocketProvider>
-            <SimulationProvider>
-              <AppRoutes />
-            </SimulationProvider>
-          </SocketProvider>
+          <LanguageProvider>
+            <SocketProvider>
+              <SimulationProvider>
+                <AppRoutes />
+              </SimulationProvider>
+            </SocketProvider>
+          </LanguageProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

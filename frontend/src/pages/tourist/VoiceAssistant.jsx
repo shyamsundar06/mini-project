@@ -8,17 +8,41 @@ import {
   Send
 } from 'lucide-react';
 import { aiApi } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function VoiceAssistant() {
-  const [language, setLanguage] = useState('English');
+  const { lang, currentLanguageObj } = useLanguage();
+  const [language, setLanguage] = useState(currentLanguageObj?.name || 'English');
   const [isListening, setIsListening] = useState(false);
   const [queryText, setQueryText] = useState('');
+
+  const greetingMap = {
+    ta: 'வணக்கம்! நான் உங்கள் AI சுற்றுலா வழிகாட்டி. உங்கள் பயணம், அடுத்த நிகழ்வுகள் அல்லது வானிலை பற்றி எது வேண்டுமானாலும் கேளுங்கள்!',
+    hi: 'नमस्ते! मैं आपका एआई टूर वॉइस गाइड हूँ। अपनी यात्रा, समूह, अगली गतिविधियों या मौसम के बारे में कुछ भी पूछें!',
+    kn: 'ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ AI ಪ್ರವಾಸ ಮಾರ್ಗದರ್ಶಿ. ನಿಮ್ಮ ಪ್ರವಾಸ, ಗುಂಪು ಅಥವಾ ಹವಾಮಾನದ ಬಗ್ಗೆ ಏನನ್ನಾದರೂ ಕೇಳಿ!',
+    te: 'నమస్కారం! నేను మీ AI టూర్ వాయిస్ గైడ్. మీ పర్యటన, సమూహం లేదా వాతావరణం గురించి ఏదైనా అడగండి!',
+    ml: 'നമസ്കാരം! ഞാൻ നിങ്ങളുടെ AI ടൂർ വോയ്സ് ഗൈഡ്. നിങ്ങളുടെ യാത്രയെക്കുറിച്ചോ അടുത്ത പ്രവർത്തനങ്ങളെക്കുറിച്ചോ ചോദിക്കൂ!',
+    en: 'Hello! I am your AI Tour Voice Guide. Ask me anything about your tour, your group, next activities, or the weather in your preferred language!'
+  };
+
   const [messages, setMessages] = useState([
     {
       sender: 'assistant',
-      text: 'Hello! I am your AI Tour Voice Guide. Ask me anything about your tour, your group, next activities, or the weather in your preferred language!'
+      text: greetingMap[lang] || greetingMap.en
     }
   ]);
+
+  useEffect(() => {
+    if (currentLanguageObj?.name) {
+      setLanguage(currentLanguageObj.name);
+      setMessages([
+        {
+          sender: 'assistant',
+          text: greetingMap[lang] || greetingMap.en
+        }
+      ]);
+    }
+  }, [lang, currentLanguageObj]);
   const [loading, setLoading] = useState(false);
   const recognitionRef = useRef(null);
 

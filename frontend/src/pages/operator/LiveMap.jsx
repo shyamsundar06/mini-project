@@ -146,27 +146,31 @@ function MapRecenter({ center, zoom }) {
   return null;
 }
 
-// Map Tile Providers (100% Free & No API Key Required)
+// Map Tile Providers (High Availability, Free & Global CDN)
 const MAP_TILES = {
-  osm: {
-    name: 'OpenStreetMap',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  },
-  hot: {
-    name: 'Humanitarian OSM',
-    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap contributors, Humanitarian style'
-  },
-  topo: {
-    name: 'OpenTopoMap',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap contributors, SRTM'
+  streets: {
+    name: 'Google Streets',
+    url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    attribution: '&copy; Google Maps'
   },
   satellite: {
     name: 'Satellite View',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: '&copy; Esri, Earthstar Geographics'
+    url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    attribution: '&copy; Google Maps'
+  },
+  terrain: {
+    name: 'Terrain View',
+    url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    attribution: '&copy; Google Maps'
+  },
+  osm: {
+    name: 'OpenStreetMap',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    subdomains: ['a', 'b', 'c'],
+    attribution: '&copy; OpenStreetMap contributors'
   }
 };
 
@@ -201,7 +205,7 @@ export default function LiveMap() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('ALL');
   const [selectedTourist, setSelectedTourist] = useState(null);
-  const [tileTheme, setTileTheme] = useState('osm');
+  const [tileTheme, setTileTheme] = useState('streets');
   const [showBreadcrumbs, setShowBreadcrumbs] = useState(true);
   const [showTourRoute, setShowTourRoute] = useState(true);
   const [showGeofences, setShowGeofences] = useState(true);
@@ -496,8 +500,10 @@ export default function LiveMap() {
             {/* Dynamic Tile Layer */}
             <TileLayer
               key={tileTheme}
-              attribution={MAP_TILES[tileTheme].attribution}
-              url={MAP_TILES[tileTheme].url}
+              attribution={MAP_TILES[tileTheme]?.attribution || '&copy; Google Maps'}
+              url={MAP_TILES[tileTheme]?.url || MAP_TILES.streets.url}
+              subdomains={MAP_TILES[tileTheme]?.subdomains || ['mt0', 'mt1', 'mt2', 'mt3']}
+              maxZoom={20}
             />
 
             {/* Live Weather Rain Radar Overlay */}
