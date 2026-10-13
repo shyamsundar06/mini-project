@@ -115,6 +115,7 @@ exports.createTourist = async (req, res) => {
 
         // Add to group_members
         if (assignedGroupId) {
+            await query('DELETE FROM group_members WHERE tourist_id = ?', [touristId]);
             const gmId = `gm_${uuidv4().substring(0, 8)}`;
             await query(
                 `INSERT INTO group_members (id, group_id, tourist_id, compatibility_score) VALUES (?, ?, ?, ?)`,
@@ -122,7 +123,18 @@ exports.createTourist = async (req, res) => {
             );
         }
 
-        res.status(201).json({ success: true, message: 'Tourist added successfully', touristId });
+        // Emit real-time updates
+        try {
+            if (req.app && typeof req.app.get === 'function' && req.app.get('io')) {
+                const io = req.app.get('io');
+                io.emit('tourist:new', { id: touristId, name, groupId: assignedGroupId, tourId: tour_id });
+                io.emit('group:update', { tour_id });
+            }
+        } catch (ioErr) {
+            console.warn('[TouristController] Socket emit error:', ioErr.message);
+        }
+
+        res.status(201).json({ success: true, message: 'Tourist added successfully', touristId, groupId: assignedGroupId });
     } catch (err) {
         console.error('[TouristController] createTourist error:', err);
         res.status(500).json({ success: false, message: err.message });
@@ -262,10 +274,11 @@ exports.bookTour = async (req, res) => {
             dietary_pref, 'Good', 'Standard', `Booked ${package_title} (${duration})`
         ]);
 
-        // 5. Add to group_members
+        // 5. Clean up previous group memberships and insert into group_members
+        await query('DELETE FROM group_members WHERE tourist_id = ?', [touristId]);
         const gmId = `gm_${uuidv4().substring(0, 8)}`;
         await query(`
-            INSERT OR REPLACE INTO group_members (id, group_id, tourist_id, compatibility_score)
+            INSERT INTO group_members (id, group_id, tourist_id, compatibility_score)
             VALUES (?, ?, ?, 95)
         `, [gmId, targetGroupId, touristId]);
 

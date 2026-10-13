@@ -11,6 +11,7 @@ import {
   Download
 } from 'lucide-react';
 import { touristApi, groupApi } from '../../services/api';
+import { useSocket } from '../../context/SocketContext';
 
 export default function TouristManagement() {
   const [tourists, setTourists] = useState([]);
@@ -20,6 +21,7 @@ export default function TouristManagement() {
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('ALL');
   const [selectedTourist, setSelectedTourist] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const { lastBookingEvent, lastGroupEvent } = useSocket();
   const [formData, setFormData] = useState({
     name: '',
     age: 29,
@@ -41,7 +43,27 @@ export default function TouristManagement() {
         touristApi.getAll(),
         groupApi.getAll('tour_ooty_nilgiris')
       ]);
-      if (tRes.data?.tourists) setTourists(tRes.data.tourists);
+
+      let serverTourists = tRes.data?.tourists || [];
+      let clientTourists = [];
+      try {
+        clientTourists = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
+      } catch (e) {}
+
+      // Merge clientTourists if not already in serverTourists
+      const merged = [...serverTourists];
+      clientTourists.forEach((ct) => {
+        const existingIndex = merged.findIndex(
+          (m) => m.name.toLowerCase() === ct.name.toLowerCase() || m.id === ct.id
+        );
+        if (existingIndex >= 0) {
+          merged[existingIndex] = { ...merged[existingIndex], ...ct };
+        } else {
+          merged.unshift(ct);
+        }
+      });
+
+      setTourists(merged);
       if (gRes.data?.groups) setGroups(gRes.data.groups);
     } catch (err) {
       console.error('Error fetching tourists:', err);
@@ -52,16 +74,57 @@ export default function TouristManagement() {
 
   useEffect(() => {
     fetchTourists();
+  }, [lastBookingEvent, lastGroupEvent]);
+
+  useEffect(() => {
+    const handleFocus = () => fetchTourists();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const handleAddTourist = async (e) => {
     e.preventDefault();
     try {
+      const assignedGroupObj = groups.find((g) => g.id === formData.group_id);
+      const newT = {
+        id: `trt_${Date.now().toString().slice(-6)}`,
+        ...formData,
+        group_name: assignedGroupObj?.name || 'Group Beta',
+        group_color: assignedGroupObj?.color_hex || '#3B82F6',
+        tour_id: 'tour_ooty_nilgiris',
+        status: 'ACTIVE',
+        created_at: new Date().toISOString()
+      };
+
+      // Store in local storage immediately
+      try {
+        const existing = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
+        const filtered = existing.filter((t) => t.name.toLowerCase() !== formData.name.toLowerCase());
+        filtered.unshift(newT);
+        localStorage.setItem('tourism_client_added_tourists', JSON.stringify(filtered));
+      } catch (e) {}
+
+      // Optimistic state update
+      setTourists((prev) => [newT, ...prev]);
+
       await touristApi.create({
         ...formData,
         tour_id: 'tour_ooty_nilgiris'
       });
       setShowAddModal(false);
+      setFormData({
+        name: '',
+        age: 29,
+        gender: 'Male',
+        preferred_language: 'Tamil',
+        walking_preference: 'Fast',
+        activity_preference: 'Adventurous',
+        interests: 'Photography, Trekking, Flora',
+        accessibility_requirements: 'None',
+        emergency_contact_name: 'Contact Person',
+        emergency_contact_phone: '+91 98451 00000',
+        group_id: ''
+      });
       fetchTourists();
     } catch (err) {
       alert(err.response?.data?.message || err.message);

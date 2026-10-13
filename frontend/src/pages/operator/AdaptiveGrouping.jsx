@@ -37,16 +37,59 @@ export default function AdaptiveGrouping() {
   const [selectedStrategyId, setSelectedStrategyId] = useState('AUTO');
   const [iterationCount, setIterationCount] = useState(0);
   const [selectedTouristToMove, setSelectedTouristToMove] = useState(null);
-  const [selectedTargetGroup, setSelectedTargetGroup] = useState('');
-  const { lastGroupEvent } = useSocket();
+  const { lastGroupEvent, lastBookingEvent } = useSocket();
 
   const fetchGroups = async () => {
     try {
       setLoading(true);
       const res = await groupApi.getAll('tour_ooty_nilgiris');
-      if (res.data?.groups) {
-        setGroups(res.data.groups);
+      let serverGroups = res.data?.groups || [];
+
+      // Merge locally added or booked tourists so they are guaranteed to reflect in groups
+      let clientTourists = [];
+      try {
+        clientTourists = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
+      } catch (e) {}
+
+      if (clientTourists.length > 0 && serverGroups.length > 0) {
+        serverGroups = serverGroups.map((grp) => {
+          const existingMembers = [...(grp.members || [])];
+          clientTourists.forEach((ct) => {
+            const matchesGroup =
+              ct.group_id === grp.id ||
+              (!ct.group_id && grp.id === 'grp_beta') ||
+              (ct.walking_preference === 'Fast' && grp.id === 'grp_alpha') ||
+              (ct.walking_preference === 'Slow' && grp.id === 'grp_gamma');
+
+            if (matchesGroup) {
+              const alreadyInGroup = existingMembers.some(
+                (m) => m.name.toLowerCase() === ct.name.toLowerCase() || m.id === ct.id
+              );
+              if (!alreadyInGroup) {
+                existingMembers.push({
+                  id: ct.id,
+                  name: ct.name,
+                  age: ct.age || 26,
+                  preferred_language: ct.preferred_language || 'English',
+                  walking_preference: ct.walking_preference || 'Moderate',
+                  activity_preference: ct.activity_preference || 'Cultural',
+                  interests: ct.interests || 'Sightseeing',
+                  accessibility_requirements: ct.accessibility_requirements || 'None',
+                  status: 'ACTIVE',
+                  compatibility_score: 95
+                });
+              }
+            }
+          });
+          return {
+            ...grp,
+            size: existingMembers.length,
+            members: existingMembers
+          };
+        });
       }
+
+      setGroups(serverGroups);
     } catch (err) {
       console.error('Error fetching groups:', err);
     } finally {
@@ -56,7 +99,13 @@ export default function AdaptiveGrouping() {
 
   useEffect(() => {
     fetchGroups();
-  }, [lastGroupEvent]);
+  }, [lastGroupEvent, lastBookingEvent]);
+
+  useEffect(() => {
+    const handleFocus = () => fetchGroups();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   // Map of tourist id -> original group id
   const originalGroupMap = {};

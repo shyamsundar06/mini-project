@@ -79,29 +79,25 @@ exports.getAllGroups = async (req, res) => {
     try {
         const { tour_id = 'tour_ooty_nilgiris' } = req.query;
 
-        // Auto-heal check: Find any tourists in this tour who are not assigned to group_members
-        const unassignedTourists = await query(`
-            SELECT id FROM tourists 
-            WHERE (tour_id = ? OR tour_id IS NULL OR tour_id = '') 
+        // Auto-heal check: ensure any tourists with a group_id have group_members record
+        await query(`
+            INSERT OR IGNORE INTO group_members (id, group_id, tourist_id, compatibility_score)
+            SELECT 'gm_' || SUBSTR(id, 5), group_id, id, 90
+            FROM tourists
+            WHERE group_id IS NOT NULL AND group_id != ''
               AND id NOT IN (SELECT tourist_id FROM group_members)
-        `, [tour_id]);
-
-        if (unassignedTourists && unassignedTourists.length > 0) {
-            console.log(`[GroupController] Auto-healing ${unassignedTourists.length} unassigned tourists into groups...`);
-            const allTourists = await query('SELECT * FROM tourists WHERE tour_id = ? OR tour_id IS NULL OR tour_id = ""', [tour_id]);
-            const clusterResult = groupAgent.clusterTourists(allTourists);
-            await persistClusters(tour_id, clusterResult.groups);
-        }
+        `);
 
         const groups = await query('SELECT * FROM groups WHERE tour_id = ? ORDER BY name ASC', [tour_id]);
 
         const enriched = await Promise.all(groups.map(async (grp) => {
             const members = await query(`
-                SELECT t.id, t.name, t.age, t.preferred_language, t.walking_preference, t.activity_preference, t.accessibility_requirements, t.interests, t.status, gm.compatibility_score
-                FROM group_members gm
-                JOIN tourists t ON gm.tourist_id = t.id
-                WHERE gm.group_id = ?
-            `, [grp.id]);
+                SELECT DISTINCT t.id, t.name, t.age, t.preferred_language, t.walking_preference, t.activity_preference, t.accessibility_requirements, t.interests, t.status, COALESCE(gm.compatibility_score, 90) as compatibility_score
+                FROM tourists t
+                LEFT JOIN group_members gm ON t.id = gm.tourist_id
+                WHERE t.group_id = ? OR gm.group_id = ?
+                ORDER BY t.name ASC
+            `, [grp.id, grp.id]);
 
             return {
                 ...grp,

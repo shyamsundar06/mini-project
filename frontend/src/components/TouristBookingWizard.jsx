@@ -277,6 +277,35 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
       };
       localStorage.setItem('tourism_user', JSON.stringify(updatedUser));
 
+      // Persist tourist record in local storage so it reflects in Operator portal immediately
+      try {
+        const targetGroupId = preferences.walking_preference === 'Fast' ? 'grp_alpha' : preferences.walking_preference === 'Slow' ? 'grp_gamma' : 'grp_beta';
+        const targetGroupName = targetGroupId === 'grp_alpha' ? 'Alpha - Southern Regional Cohort' : targetGroupId === 'grp_gamma' ? 'Gamma - Regional Cultural Guild' : 'Beta - Bilingual Bridge Cohort';
+        const clientTourist = {
+          id: `trt_${touristName.toLowerCase()}`,
+          name: touristName,
+          age: 26,
+          gender: 'Female',
+          preferred_language: LANGUAGES.find((l) => l.code === selectedLang)?.name || 'English',
+          walking_preference: preferences.walking_preference,
+          activity_preference: preferences.activity_preference,
+          interests: preferences.interests,
+          accessibility_requirements: 'None',
+          emergency_contact_name: 'Emergency Contact',
+          emergency_contact_phone: preferences.emergency_contact_phone || '+91 98451 00000',
+          tour_id: 'tour_ooty_nilgiris',
+          group_id: targetGroupId,
+          group_name: targetGroupName,
+          tour_title: selectedPackage.title,
+          status: 'ACTIVE',
+          created_at: new Date().toISOString()
+        };
+        const existing = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
+        const filtered = existing.filter(t => t.name.toLowerCase() !== touristName.toLowerCase());
+        filtered.push(clientTourist);
+        localStorage.setItem('tourism_client_added_tourists', JSON.stringify(filtered));
+      } catch (e) {}
+
       setBookingResult(bookingData);
       setStep(5);
 
