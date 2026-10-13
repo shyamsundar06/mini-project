@@ -22,7 +22,8 @@ import {
   ChevronRight,
   LogOut,
   Clock,
-  Star
+  Star,
+  UserCheck
 } from 'lucide-react';
 import { authApi, touristApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
