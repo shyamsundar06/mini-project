@@ -55,6 +55,11 @@ export function SocketProvider({ children }) {
         setLastBookingEvent(data);
       });
 
+      s.on('tourist:deleted', (data) => {
+        setLastGroupEvent(data);
+        setLastBookingEvent(data);
+      });
+
       // Real-time event listeners
       s.on('emergency:new', (data) => {
         setActiveEmergency(data);

@@ -45,11 +45,35 @@ export default function AdaptiveGrouping() {
       const res = await groupApi.getAll('tour_ooty_nilgiris');
       let serverGroups = res.data?.groups || [];
 
+      // Read any deleted tourists blacklist
+      let deletedIds = [];
+      let deletedNames = [];
+      try {
+        deletedIds = JSON.parse(localStorage.getItem('tourism_deleted_tourist_ids') || '[]');
+        deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
+      } catch (e) {}
+
+      // Clean server groups to remove any deleted tourists
+      serverGroups = serverGroups.map((grp) => {
+        const filteredMembers = (grp.members || []).filter(
+          (m) => !deletedIds.includes(m.id) && !deletedNames.includes(m.name?.toLowerCase())
+        );
+        return {
+          ...grp,
+          size: filteredMembers.length,
+          members: filteredMembers
+        };
+      });
+
       // Merge locally added or booked tourists so they are guaranteed to reflect in groups
       let clientTourists = [];
       try {
         clientTourists = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
       } catch (e) {}
+
+      clientTourists = clientTourists.filter(
+        (ct) => !deletedIds.includes(ct.id) && !deletedNames.includes(ct.name?.toLowerCase())
+      );
 
       if (clientTourists.length > 0 && serverGroups.length > 0) {
         serverGroups = serverGroups.map((grp) => {

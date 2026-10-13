@@ -46,8 +46,12 @@ export default function TouristManagement() {
 
       let serverTourists = tRes.data?.tourists || [];
       let clientTourists = [];
+      let deletedIds = [];
+      let deletedNames = [];
       try {
         clientTourists = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
+        deletedIds = JSON.parse(localStorage.getItem('tourism_deleted_tourist_ids') || '[]');
+        deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
       } catch (e) {}
 
       // Merge clientTourists if not already in serverTourists
@@ -63,7 +67,12 @@ export default function TouristManagement() {
         }
       });
 
-      setTourists(merged);
+      // Filter out any deleted tourists
+      const activeTourists = merged.filter(
+        (t) => !deletedIds.includes(t.id) && !deletedNames.includes(t.name?.toLowerCase())
+      );
+
+      setTourists(activeTourists);
       if (gRes.data?.groups) setGroups(gRes.data.groups);
     } catch (err) {
       console.error('Error fetching tourists:', err);
@@ -102,6 +111,11 @@ export default function TouristManagement() {
         const filtered = existing.filter((t) => t.name.toLowerCase() !== formData.name.toLowerCase());
         filtered.unshift(newT);
         localStorage.setItem('tourism_client_added_tourists', JSON.stringify(filtered));
+
+        // If it was previously marked deleted, un-delete it
+        const deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
+        const cleanDeleted = deletedNames.filter((n) => n !== formData.name.toLowerCase());
+        localStorage.setItem('tourism_deleted_tourist_names', JSON.stringify(cleanDeleted));
       } catch (e) {}
 
       // Optimistic state update
@@ -132,12 +146,41 @@ export default function TouristManagement() {
   };
 
   const handleDeleteTourist = async (id) => {
-    if (confirm('Are you sure you want to remove this tourist?')) {
+    const target = tourists.find((t) => t.id === id);
+    const targetName = target?.name;
+    if (confirm(`Are you sure you want to remove tourist ${targetName || ''}?`)) {
       try {
+        // Optimistic UI removal
+        setTourists((prev) => prev.filter((t) => t.id !== id));
+
+        // 1. Remove from client added list
+        try {
+          const existing = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
+          const updated = existing.filter(
+            (t) => t.id !== id && t.name?.toLowerCase() !== targetName?.toLowerCase()
+          );
+          localStorage.setItem('tourism_client_added_tourists', JSON.stringify(updated));
+        } catch (e) {}
+
+        // 2. Add to deleted IDs blacklist
+        try {
+          const deletedList = JSON.parse(localStorage.getItem('tourism_deleted_tourist_ids') || '[]');
+          if (!deletedList.includes(id)) deletedList.push(id);
+          localStorage.setItem('tourism_deleted_tourist_ids', JSON.stringify(deletedList));
+
+          if (targetName) {
+            const deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
+            if (!deletedNames.includes(targetName.toLowerCase())) deletedNames.push(targetName.toLowerCase());
+            localStorage.setItem('tourism_deleted_tourist_names', JSON.stringify(deletedNames));
+          }
+        } catch (e) {}
+
+        // 3. Call backend API
         await touristApi.delete(id);
         fetchTourists();
       } catch (err) {
-        alert(err.message);
+        console.error('Delete tourist error:', err);
+        fetchTourists();
       }
     }
   };

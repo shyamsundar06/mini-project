@@ -178,9 +178,41 @@ exports.updateTourist = async (req, res) => {
 exports.deleteTourist = async (req, res) => {
     try {
         const { id } = req.params;
+
+        // Fetch tourist metadata for real-time notification
+        const tRows = await query('SELECT tour_id, name, group_id FROM tourists WHERE id = ?', [id]);
+        const tourId = tRows[0]?.tour_id || 'tour_ooty_nilgiris';
+        const touristName = tRows[0]?.name;
+
+        // 1. Delete from group_members
+        await query('DELETE FROM group_members WHERE tourist_id = ?', [id]);
+        // 2. Delete from preferences
+        await query('DELETE FROM tourist_preferences WHERE tourist_id = ?', [id]);
+        // 3. Delete from locations & breadcrumbs
+        await query('DELETE FROM tourist_locations WHERE tourist_id = ?', [id]);
+        // 4. Delete from emergencies
+        await query('DELETE FROM emergencies WHERE tourist_id = ?', [id]);
+        // 5. Delete from broadcast acknowledgments
+        await query('DELETE FROM broadcast_acknowledgments WHERE tourist_id = ?', [id]);
+        // 6. Delete from feedback
+        await query('DELETE FROM tourist_feedback WHERE tourist_id = ?', [id]);
+        // 7. Delete from tourists table
         await query('DELETE FROM tourists WHERE id = ?', [id]);
-        res.json({ success: true, message: 'Tourist deleted successfully' });
+
+        // 8. Emit real-time deletion events
+        try {
+            if (req.app && typeof req.app.get === 'function' && req.app.get('io')) {
+                const io = req.app.get('io');
+                io.emit('tourist:deleted', { id, name: touristName, tourId });
+                io.emit('group:update', { tour_id: tourId });
+            }
+        } catch (ioErr) {
+            console.warn('[TouristController] Socket emit error on delete:', ioErr.message);
+        }
+
+        res.json({ success: true, message: 'Tourist deleted successfully', id });
     } catch (err) {
+        console.error('[TouristController] deleteTourist error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
