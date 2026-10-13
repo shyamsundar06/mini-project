@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import TouristFeedbackModal from '../../components/TouristFeedbackModal';
 import { useAuth } from '../../context/AuthContext';
-import { itineraryApi, broadcastApi, weatherApi } from '../../services/api';
+import { itineraryApi, broadcastApi, weatherApi, touristApi } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -104,10 +104,13 @@ export default function TouristDashboard() {
           walkingPreference: parsed.preferences?.walking_preference || prev.walkingPreference,
           preferredLanguage: parsed.language || prev.preferredLanguage
         }));
-      } else if (storedUser) {
-        const u = JSON.parse(storedUser);
-        if (u.name) {
-          setTouristInfo((prev) => ({ ...prev, name: u.name }));
+      } else {
+        setActiveBooking(null);
+        if (storedUser) {
+          const u = JSON.parse(storedUser);
+          if (u.name) {
+            setTouristInfo((prev) => ({ ...prev, name: u.name }));
+          }
         }
       }
     } catch (e) {}
@@ -126,18 +129,46 @@ export default function TouristDashboard() {
     };
   }, []);
 
-  const { lastItineraryEvent, lastBroadcastEvent } = useSocket();
+  const [removedAlertNotice, setRemovedAlertNotice] = useState(false);
+  const { lastItineraryEvent, lastBroadcastEvent, lastDeletedEvent } = useSocket();
   const navigate = useNavigate();
+
+  // Handle immediate deletion event from Tour Operator
+  useEffect(() => {
+    if (lastDeletedEvent) {
+      try {
+        const stored = localStorage.getItem('tourist_active_booking');
+        if (!stored) return;
+        const parsed = JSON.parse(stored);
+        const delName = (lastDeletedEvent.name || '').toLowerCase().trim();
+        const curName = (touristInfo.name || '').toLowerCase().trim();
+        const bkName = (parsed.tourist_name || '').toLowerCase().trim();
+        const delId = lastDeletedEvent.id;
+        const bkId = parsed.tourist_id || parsed.touristId || parsed.id;
+
+        if (
+          (delName && (delName === curName || delName === bkName)) ||
+          (delId && (delId === bkId || delId === touristInfo.id))
+        ) {
+          localStorage.removeItem('tourist_active_booking');
+          setActiveBooking(null);
+          setRemovedAlertNotice(true);
+          window.dispatchEvent(new Event('tourist_booking_updated'));
+        }
+      } catch (e) {}
+    }
+  }, [lastDeletedEvent]);
 
   const loadData = async () => {
     try {
-      const [itinRes, bcRes, weatherRes] = await Promise.all([
-        itineraryApi.get('tour_ooty_nilgiris', 1),
-        broadcastApi.getAll('tour_ooty_nilgiris', touristInfo.groupId),
-        weatherApi.getLive({ tour_id: 'tour_ooty_nilgiris' }).catch(() => null)
+      const [itinRes, bcRes, weatherRes, touristsRes] = await Promise.all([
+        itineraryApi.get('tour_ooty_nilgiris', 1).catch(() => null),
+        broadcastApi.getAll('tour_ooty_nilgiris', touristInfo.groupId).catch(() => null),
+        weatherApi.getLive({ tour_id: 'tour_ooty_nilgiris' }).catch(() => null),
+        touristApi.getAll('tour_ooty_nilgiris').catch(() => null)
       ]);
 
-      if (itinRes.data?.itinerary?.items) {
+      if (itinRes?.data?.itinerary?.items) {
         const items = itinRes.data.itinerary.items;
         setAllItineraryItems(items);
         const next =
@@ -145,7 +176,7 @@ export default function TouristDashboard() {
         setItineraryItem(next);
       }
 
-      if (bcRes.data?.broadcasts) {
+      if (bcRes?.data?.broadcasts) {
         setBroadcasts(bcRes.data.broadcasts);
       }
 
@@ -159,7 +190,7 @@ export default function TouristDashboard() {
 
   useEffect(() => {
     loadData();
-  }, [lastItineraryEvent, lastBroadcastEvent, touristInfo.groupId]);
+  }, [lastItineraryEvent, lastBroadcastEvent, lastDeletedEvent, touristInfo.groupId]);
 
   const handleAcknowledge = async (broadcastId) => {
     try {
@@ -239,75 +270,115 @@ export default function TouristDashboard() {
           </div>
         )}
 
-      {/* Welcome & Booked Tour Card */}
-      <div className="glass-panel p-5 rounded-3xl border border-slate-200 space-y-3 shadow-sm bg-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1.5 flex-wrap gap-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-black">
-              {t('activeTour')}
+      {/* Notice Banner if recently removed */}
+      {removedAlertNotice && (
+        <div className="p-4 rounded-3xl bg-rose-50 border border-rose-200 text-rose-800 shadow-md flex items-center justify-between animate-in fade-in duration-200">
+          <div className="flex items-center space-x-2.5">
+            <span className="p-2 rounded-xl bg-rose-100 text-rose-700 font-bold text-xs">⚠️</span>
+            <div>
+              <p className="text-xs font-bold">Booking Removed by Tour Operator</p>
+              <p className="text-[11px] text-rose-600">Your profile was removed from this tour by the tour coordinator.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setRemovedAlertNotice(false)}
+            className="text-rose-400 hover:text-rose-700 text-xs font-bold px-2 py-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Welcome & Booked Tour Card OR Unbooked State */}
+      {activeBooking ? (
+        <div className="glass-panel p-5 rounded-3xl border border-slate-200 space-y-3 shadow-sm bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1.5 flex-wrap gap-1">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-black">
+                {t('activeTour')}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
+                {activeBooking?.duration || '3 Days / 4 Nights'}
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[9px] font-black flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
+                <span>LIVE BOOKING ACTIVE</span>
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-semibold">{t('dayOf')}</span>
+          </div>
+
+          <div>
+            <h2 className="text-lg font-black text-slate-900 leading-tight">
+              {activeBooking?.package_title || t('tourTitle')}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">{t('tourDestination')}</p>
+          </div>
+
+          {/* Places included in package */}
+          {(() => {
+            const displayPlaces = (activeBooking?.places && activeBooking.places.length > 0)
+              ? activeBooking.places
+              : [
+                  'Doddabetta Peak (2,637m)',
+                  'Government Botanical Garden',
+                  'Heritage Tea Estate & Factory',
+                  'Pykara Waterfalls & Boathouse',
+                  'Nilgiri Mountain Steam Railway'
+                ];
+            return (
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center space-x-1">
+                  <MapPin className="w-3 h-3 text-blue-600" />
+                  <span>Tour Places Included ({displayPlaces.length} Locations):</span>
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {displayPlaces.map((place, idx) => {
+                    const placeName = typeof place === 'string' ? place : (place.name || place.title || 'Sightseeing Point');
+                    return (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center px-2 py-0.5 rounded-lg bg-blue-50/80 border border-blue-200 text-[10px] font-semibold text-slate-800 shadow-xs"
+                      >
+                        📍 {placeName}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+            <span>
+              {t('welcome')} <strong className="text-slate-900 font-extrabold">{touristInfo.name}</strong>
             </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
-              {activeBooking?.duration || '3 Days / 4 Nights'}
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[9px] font-black flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
-              <span>LIVE BOOKING ACTIVE</span>
+            <span className="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+              <span>{touristInfo.groupName}</span>
             </span>
           </div>
-          <span className="text-[10px] text-slate-500 font-semibold">{t('dayOf')}</span>
         </div>
-
-        <div>
-          <h2 className="text-lg font-black text-slate-900 leading-tight">
-            {activeBooking?.package_title || t('tourTitle')}
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">{t('tourDestination')}</p>
+      ) : (
+        <div className="glass-panel p-6 rounded-3xl border border-slate-200 space-y-4 shadow-sm bg-white text-center animate-in fade-in duration-200">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold shadow-xs">
+            🎒
+          </div>
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">No Active Tour Booking</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+              You are currently not enrolled in an active tour. Book a tour package to join a group cohort and unlock live itineraries.
+            </p>
+          </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open_booking_wizard'))}
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-blue-500/25 flex items-center justify-center space-x-2 transition-all active:scale-[0.98]"
+          >
+            <Compass className="w-4 h-4" />
+            <span>Select & Book a Tour Package</span>
+          </button>
         </div>
-
-        {/* Places included in package */}
-        {(() => {
-          const displayPlaces = (activeBooking?.places && activeBooking.places.length > 0)
-            ? activeBooking.places
-            : [
-                'Doddabetta Peak (2,637m)',
-                'Government Botanical Garden',
-                'Heritage Tea Estate & Factory',
-                'Pykara Waterfalls & Boathouse',
-                'Nilgiri Mountain Steam Railway'
-              ];
-          return (
-            <div className="pt-2 border-t border-slate-100">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center space-x-1">
-                <MapPin className="w-3 h-3 text-blue-600" />
-                <span>Tour Places Included ({displayPlaces.length} Locations):</span>
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {displayPlaces.map((place, idx) => {
-                  const placeName = typeof place === 'string' ? place : (place.name || place.title || 'Sightseeing Point');
-                  return (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center px-2 py-0.5 rounded-lg bg-blue-50/80 border border-blue-200 text-[10px] font-semibold text-slate-800 shadow-xs"
-                    >
-                      📍 {placeName}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-          <span>
-            {t('welcome')} <strong className="text-slate-900 font-extrabold">{touristInfo.name}</strong>
-          </span>
-          <span className="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 flex items-center space-x-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-            <span>{touristInfo.groupName}</span>
-          </span>
-        </div>
-      </div>
+      )}
 
       {/* Real-Time Tour Place Weather & Safety Card */}
       {weather && (

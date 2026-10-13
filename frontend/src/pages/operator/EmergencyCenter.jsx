@@ -30,8 +30,12 @@ export default function EmergencyCenter() {
       const res = await emergencyApi.getAll('tour_ooty_nilgiris');
       if (res.data?.emergencies) {
         setEmergencies(res.data.emergencies);
-        if (res.data.emergencies.length > 0 && !selectedEmergency) {
-          setSelectedEmergency(res.data.emergencies[0]);
+        if (res.data.emergencies.length > 0) {
+          setSelectedEmergency((prev) => {
+            if (!prev) return res.data.emergencies[0];
+            const found = res.data.emergencies.find((e) => e.id === prev.id);
+            return found || res.data.emergencies[0];
+          });
         }
       }
     } catch (err) {
@@ -42,6 +46,16 @@ export default function EmergencyCenter() {
   };
 
   useEffect(() => {
+    if (activeEmergency) {
+      setEmergencies((prev) => {
+        const exists = prev.some((e) => e.id === activeEmergency.id);
+        if (!exists) {
+          setSelectedEmergency(activeEmergency);
+          return [activeEmergency, ...prev];
+        }
+        return prev;
+      });
+    }
     fetchEmergencies();
   }, [activeEmergency]);
 

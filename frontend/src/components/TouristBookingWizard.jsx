@@ -146,16 +146,30 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
   const [bookingResult, setBookingResult] = useState(null);
 
   useEffect(() => {
-    const currentStoredUser = localStorage.getItem('tourism_user');
-    if (currentStoredUser) {
-      try {
-        const parsed = JSON.parse(currentStoredUser);
-        if (parsed.email?.includes('sonika') || parsed.username === 'sonika' || parsed.name?.toLowerCase().includes('sonika')) {
-          setAuthenticatedUser(parsed);
-        } else if (parsed.email?.includes('subika') || parsed.username === 'subika' || parsed.name?.toLowerCase().includes('subika')) {
-          setAuthenticatedUser(parsed);
+    if (isOpen) {
+      setBookingResult(null);
+      setIsSubmitting(false);
+      const currentStoredUser = localStorage.getItem('tourism_user');
+      if (currentStoredUser) {
+        try {
+          const parsed = JSON.parse(currentStoredUser);
+          if (parsed.email?.includes('sonika') || parsed.username === 'sonika' || parsed.name?.toLowerCase().includes('sonika')) {
+            setAuthenticatedUser(parsed);
+            setUsername('sonika');
+            setStep(2);
+          } else if (parsed.email?.includes('subika') || parsed.username === 'subika' || parsed.name?.toLowerCase().includes('subika')) {
+            setAuthenticatedUser(parsed);
+            setUsername('subika');
+            setStep(2);
+          } else {
+            setStep(1);
+          }
+        } catch (e) {
+          setStep(1);
         }
-      } catch (e) {}
+      } else {
+        setStep(1);
+      }
     }
   }, [isOpen]);
 
@@ -337,9 +351,7 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
         });
       } catch (e) {}
 
-      if (onBookingSuccess) {
-        onBookingSuccess(bookingData);
-      }
+      // Step 5 celebration will call onBookingSuccess when user clicks Enter My Tour Dashboard
     } catch (err) {
       console.error('Booking failed:', err);
       // Graceful fallback display
@@ -908,7 +920,6 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
                     try {
                       window.dispatchEvent(new Event('tourist_booking_updated'));
                     } catch (e) {}
-                    window.location.reload();
                   }}
                   className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-blue-500/25 flex items-center justify-center space-x-2 transition-all active:scale-[0.98]"
                 >

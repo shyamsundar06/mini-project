@@ -14,6 +14,7 @@ export function SocketProvider({ children }) {
   const [lastGroupEvent, setLastGroupEvent] = useState(null);
   const [lastBroadcastEvent, setLastBroadcastEvent] = useState(null);
   const [lastBookingEvent, setLastBookingEvent] = useState(null);
+  const [lastDeletedEvent, setLastDeletedEvent] = useState(null);
 
   useEffect(() => {
     let s = null;
@@ -64,8 +65,16 @@ export function SocketProvider({ children }) {
       });
 
       s.on('tourist:deleted', (data) => {
+        setLastDeletedEvent(data);
         setLastGroupEvent(data);
         setLastBookingEvent(data);
+        addNotification({
+          id: `notif_${Date.now()}`,
+          title: '🗑️ Tourist Removed',
+          message: `Tourist ${data.name || 'Member'} was removed from the tour.`,
+          type: 'INFO',
+          time: new Date().toLocaleTimeString()
+        });
       });
 
       // Real-time event listeners
@@ -174,7 +183,8 @@ export function SocketProvider({ children }) {
         lastItineraryEvent,
         lastGroupEvent,
         lastBroadcastEvent,
-        lastBookingEvent
+        lastBookingEvent,
+        lastDeletedEvent
       }}
     >
       {children}

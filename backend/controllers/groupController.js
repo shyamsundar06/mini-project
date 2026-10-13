@@ -95,7 +95,7 @@ exports.getAllGroups = async (req, res) => {
                 SELECT DISTINCT t.id, t.name, t.age, t.preferred_language, t.walking_preference, t.activity_preference, t.accessibility_requirements, t.interests, t.status, COALESCE(gm.compatibility_score, 90) as compatibility_score
                 FROM tourists t
                 LEFT JOIN group_members gm ON t.id = gm.tourist_id
-                WHERE t.group_id = ? OR gm.group_id = ?
+                WHERE (t.group_id = ? OR gm.group_id = ?) AND (t.status IS NULL OR t.status != 'DELETED')
                 ORDER BY t.name ASC
             `, [grp.id, grp.id]);
 

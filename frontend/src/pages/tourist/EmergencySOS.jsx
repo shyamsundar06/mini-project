@@ -172,13 +172,28 @@ export default function EmergencySOS() {
       }
     }
 
+    let touristName = 'Sonika';
+    let touristId = 'trt_sonika';
+    let groupName = 'Group Beta';
+
+    try {
+      const activeBooking = JSON.parse(localStorage.getItem('tourist_active_booking') || 'null');
+      const storedUser = JSON.parse(localStorage.getItem('tourism_user') || 'null');
+
+      touristName = activeBooking?.tourist_name || storedUser?.name || user?.name || 'Sonika';
+      touristId = activeBooking?.tourist_id || storedUser?.id || user?.touristProfile?.id || user?.id || (touristName.toLowerCase().includes('sonika') ? 'trt_sonika' : 'trt_1');
+      groupName = activeBooking?.assigned_group || 'Group Beta';
+    } catch (e) {}
+
     const payload = {
-      tourist_id: user?.id || 'trt_1',
+      tourist_id: touristId,
+      tourist_name: touristName,
+      group_name: groupName,
       tour_id: 'tour_ooty_nilgiris',
       latitude: lat,
       longitude: lng,
       emergency_type: emergencyType,
-      message: notes || `Immediate emergency assistance requested by tourist (${emergencyType}).`
+      message: notes || `Immediate emergency assistance requested by tourist ${touristName} (${emergencyType}).`
     };
 
     if (!navigator.onLine) {

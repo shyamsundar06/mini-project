@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage, LANGUAGES } from '../context/LanguageContext';
+import { useSocket } from '../context/SocketContext';
 import TouristBookingWizard from '../components/TouristBookingWizard';
 
 export default function TouristLayout() {
   const { user, switchRoleDemo } = useAuth();
   const { lang, setLang, t, hasChosenLang, currentLanguageObj } = useLanguage();
+  const { lastDeletedEvent } = useSocket();
   const [showLangModal, setShowLangModal] = useState(false);
   const [showBookingWizard, setShowBookingWizard] = useState(false);
   const [activeBooking, setActiveBooking] = useState(null);
@@ -27,29 +29,67 @@ export default function TouristLayout() {
   useEffect(() => {
     const syncLayoutBooking = () => {
       try {
+        const DATA_VERSION = 'v3_fresh_15_allocation_ai';
+        if (localStorage.getItem('tourism_data_version') !== DATA_VERSION) {
+          localStorage.setItem('tourism_data_version', DATA_VERSION);
+          localStorage.removeItem('tourist_active_booking');
+          localStorage.removeItem('tourism_client_added_tourists');
+          localStorage.removeItem('tourism_deleted_tourist_names');
+          localStorage.removeItem('tourism_deleted_tourist_ids');
+        }
+
         const storedBooking = localStorage.getItem('tourist_active_booking');
         const storedUser = localStorage.getItem('tourism_user');
         const isSonikaOrSubika = storedUser && (storedUser.toLowerCase().includes('sonika') || storedUser.toLowerCase().includes('subika'));
 
         if (storedBooking) {
           setActiveBooking(JSON.parse(storedBooking));
+        } else {
+          setActiveBooking(null);
         }
 
         // If user hasn't booked yet or isn't Sonika/Subika, open wizard
-        if (!storedBooking || !isSonikaOrSubika) {
+        if (!storedBooking && !isSonikaOrSubika) {
           setShowBookingWizard(true);
         }
       } catch (e) {}
     };
 
     syncLayoutBooking();
+    const handleOpenWizard = () => setShowBookingWizard(true);
     window.addEventListener('storage', syncLayoutBooking);
     window.addEventListener('tourist_booking_updated', syncLayoutBooking);
+    window.addEventListener('open_booking_wizard', handleOpenWizard);
     return () => {
       window.removeEventListener('storage', syncLayoutBooking);
       window.removeEventListener('tourist_booking_updated', syncLayoutBooking);
+      window.removeEventListener('open_booking_wizard', handleOpenWizard);
     };
   }, []);
+
+  useEffect(() => {
+    if (lastDeletedEvent) {
+      try {
+        const stored = localStorage.getItem('tourist_active_booking');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const delName = (lastDeletedEvent.name || '').toLowerCase().trim();
+          const delId = lastDeletedEvent.id;
+          const bkName = (parsed.tourist_name || '').toLowerCase().trim();
+          const bkId = parsed.tourist_id || parsed.touristId || parsed.id;
+
+          if (
+            (delName && (delName === bkName || delName === (user?.name || '').toLowerCase().trim())) ||
+            (delId && (delId === bkId || delId === user?.id))
+          ) {
+            localStorage.removeItem('tourist_active_booking');
+            setActiveBooking(null);
+            window.dispatchEvent(new Event('tourist_booking_updated'));
+          }
+        }
+      } catch (e) {}
+    }
+  }, [lastDeletedEvent, user]);
 
   const touristTabs = [
     { to: '/tourist', icon: Home, label: t('tabHome'), end: true },
@@ -120,8 +160,9 @@ export default function TouristLayout() {
         onBookingSuccess={(booking) => {
           setActiveBooking(booking);
           setShowBookingWizard(false);
-          // Refresh page or trigger dashboard update
-          window.location.reload();
+          try {
+            window.dispatchEvent(new Event('tourist_booking_updated'));
+          } catch (e) {}
         }}
       />
 
@@ -160,6 +201,17 @@ export default function TouristLayout() {
               <Globe className="w-3.5 h-3.5 text-blue-600" />
               <span className="text-[11px]">{currentLanguageObj.native}</span>
             </button>
+
+            {/* Operator Portal Link */}
+            <a
+              href={typeof window !== 'undefined' && window.location.hostname.includes('localhost') ? "http://localhost:4000" : "/operator"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 border border-slate-200 text-slate-700 hover:text-blue-700 text-[11px] font-bold flex items-center space-x-1 transition-all"
+              title="Open Tour Operator Dashboard"
+            >
+              <span>{typeof window !== 'undefined' && window.location.hostname.includes('localhost') ? 'Operator (4000) ↗' : 'Operator Portal ↗'}</span>
+            </a>
           </div>
         </div>
       </header>

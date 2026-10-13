@@ -46,7 +46,7 @@ export default function TouristManagement() {
 
       let serverTourists = tRes.data?.tourists || [];
       // Reset local cache to fresh state
-      const DATA_VERSION = 'v2_fresh_15_tourists';
+      const DATA_VERSION = 'v3_fresh_15_allocation_ai';
       if (localStorage.getItem('tourism_data_version') !== DATA_VERSION) {
         localStorage.setItem('tourism_data_version', DATA_VERSION);
         localStorage.removeItem('tourism_client_added_tourists');
@@ -64,20 +64,22 @@ export default function TouristManagement() {
         deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
       } catch (e) {}
 
-      // Auto-heal: Any active client tourist or booked tourist MUST NOT be blacklisted
+      // Auto-heal: Any active server tourist or client tourist MUST NOT be blacklisted
+      const serverNames = new Set(serverTourists.map((st) => (st.name || '').toLowerCase().trim()));
+      const serverIds = new Set(serverTourists.map((st) => st.id));
+
       if (clientTourists.length > 0) {
         const clientNames = clientTourists.map((ct) => ct.name.toLowerCase());
-        const cleanedDeletedNames = deletedNames.filter((dn) => !clientNames.includes(dn));
-        const cleanedDeletedIds = deletedIds.filter((di) => !clientTourists.some((ct) => ct.id === di));
-        if (cleanedDeletedNames.length !== deletedNames.length || cleanedDeletedIds.length !== deletedIds.length) {
-          deletedNames = cleanedDeletedNames;
-          deletedIds = cleanedDeletedIds;
-          try {
-            localStorage.setItem('tourism_deleted_tourist_names', JSON.stringify(deletedNames));
-            localStorage.setItem('tourism_deleted_tourist_ids', JSON.stringify(deletedIds));
-          } catch (e) {}
-        }
+        deletedNames = deletedNames.filter((dn) => !clientNames.includes(dn) && !serverNames.has(dn));
+        deletedIds = deletedIds.filter((di) => !clientTourists.some((ct) => ct.id === di) && !serverIds.has(di));
+      } else {
+        deletedNames = deletedNames.filter((dn) => !serverNames.has(dn));
+        deletedIds = deletedIds.filter((di) => !serverIds.has(di));
       }
+      try {
+        localStorage.setItem('tourism_deleted_tourist_names', JSON.stringify(deletedNames));
+        localStorage.setItem('tourism_deleted_tourist_ids', JSON.stringify(deletedIds));
+      } catch (e) {}
 
       if (lastBookingEvent?.tourist_name) {
         const bookedName = lastBookingEvent.tourist_name.toLowerCase();

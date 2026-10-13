@@ -7,14 +7,17 @@ exports.getAllEmergencies = async (req, res) => {
         const { tour_id = 'tour_ooty_nilgiris' } = req.query;
         const emergencies = await query(`
             SELECT e.*, 
-                   t.name as tourist_name, t.emergency_contact_phone as tourist_phone, t.emergency_contact_name, t.emergency_contact_phone,
-                   g.name as group_name, g.color_hex as group_color,
+                   COALESCE(t.name, 'Tourist') as tourist_name, 
+                   COALESCE(t.emergency_contact_phone, '+91 98451 11111') as tourist_phone, 
+                   COALESCE(t.emergency_contact_name, 'Tour Coordinator') as emergency_contact_name,
+                   COALESCE(g.name, 'Group Beta') as group_name, 
+                   COALESCE(g.color_hex, '#3B82F6') as group_color,
                    ee.transport_type, ee.estimated_distance_km, ee.estimated_cost_min, ee.estimated_cost_max, ee.reserve_available
             FROM emergencies e
-            JOIN tourists t ON e.tourist_id = t.id
-            LEFT JOIN groups g ON e.group_id = g.id
+            LEFT JOIN tourists t ON e.tourist_id = t.id OR e.tourist_id = t.user_id
+            LEFT JOIN groups g ON e.group_id = g.id OR t.group_id = g.id
             LEFT JOIN emergency_expenses ee ON e.id = ee.emergency_id
-            WHERE e.tour_id = ? OR e.tour_id IS NULL
+            WHERE e.tour_id = ? OR e.tour_id IS NULL OR e.tour_id = ''
             ORDER BY CASE WHEN e.status = 'ACTIVE' THEN 1 WHEN e.status = 'INVESTIGATING' THEN 2 ELSE 3 END, e.reported_at DESC
         `, [tour_id]);
 
@@ -28,7 +31,9 @@ exports.getAllEmergencies = async (req, res) => {
 exports.triggerSOS = async (req, res) => {
     try {
         const {
-            tourist_id = 'trt_1',
+            tourist_id,
+            tourist_name = 'Sonika',
+            group_name,
             tour_id = 'tour_ooty_nilgiris',
             latitude = 11.4192,
             longitude = 76.7115,
@@ -36,23 +41,55 @@ exports.triggerSOS = async (req, res) => {
             message = 'Urgent assistance requested by tourist.'
         } = req.body;
 
-        // Fetch tourist and group info
-        const tourists = await query(`
-            SELECT t.*, g.name as group_name 
-            FROM tourists t 
-            LEFT JOIN groups g ON t.group_id = g.id 
-            WHERE t.id = ?
-        `, [tourist_id]);
+        // Intelligently find tourist by id, user_id, or name
+        let tourists = [];
+        if (tourist_id) {
+            tourists = await query(`
+                SELECT t.*, g.name as group_name 
+                FROM tourists t 
+                LEFT JOIN groups g ON t.group_id = g.id 
+                WHERE t.id = ? OR t.user_id = ?
+            `, [tourist_id, tourist_id]);
+        }
+        if ((!tourists || tourists.length === 0) && tourist_name) {
+            tourists = await query(`
+                SELECT t.*, g.name as group_name 
+                FROM tourists t 
+                LEFT JOIN groups g ON t.group_id = g.id 
+                WHERE LOWER(t.name) = LOWER(?)
+            `, [tourist_name.trim()]);
+        }
 
-        const tourist = tourists[0] || { name: 'Rahul Kumar', group_name: 'Group Alpha' };
+        const matched = (tourists && tourists.length > 0) ? tourists[0] : null;
+        const actualName = matched?.name || tourist_name || 'Sonika';
+        const actualId = matched?.id || tourist_id || `trt_${uuidv4().substring(0, 8)}`;
+        const actualGroupId = matched?.group_id || 'grp_beta';
+        const actualGroupName = matched?.group_name || group_name || 'Group Beta';
+
+        // Ensure tourist exists in database so foreign keys & joins work
+        if (!matched) {
+            try {
+                await query(`
+                    INSERT INTO tourists (id, user_id, tour_id, group_id, name, age, gender, preferred_language, status)
+                    VALUES (?, ?, ?, ?, ?, 28, 'Other', 'English', 'EMERGENCY')
+                `, [actualId, tourist_id || null, tour_id, actualGroupId, actualName]);
+            } catch (e) {
+                // Ignore if unique conflict
+            }
+        } else {
+            try {
+                await query("UPDATE tourists SET status = 'EMERGENCY' WHERE id = ?", [actualId]);
+            } catch (e) {}
+        }
+
         const emergencyId = `emg_${uuidv4().substring(0, 8)}`;
         const now = new Date().toISOString();
 
         // 1. Triage with Emergency Agent
         const triageResult = await emergencyAgent.triage({
-            tourist_id,
-            tourist_name: tourist.name,
-            group_name: tourist.group_name,
+            tourist_id: actualId,
+            tourist_name: actualName,
+            group_name: actualGroupName,
             latitude,
             longitude,
             emergency_type
@@ -63,7 +100,7 @@ exports.triggerSOS = async (req, res) => {
             INSERT INTO emergencies (id, tourist_id, tour_id, group_id, latitude, longitude, emergency_type, message, status, priority, assigned_responder, reported_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', 'CRITICAL', ?, ?)
         `, [
-            emergencyId, tourist_id, tour_id, tourist.group_id || null, latitude, longitude, emergency_type, message,
+            emergencyId, actualId, tour_id, actualGroupId, latitude, longitude, emergency_type, message,
             triageResult.nearestSupport?.name || 'Ooty Rapid Rescue Team', now
         ]);
 
@@ -78,14 +115,11 @@ exports.triggerSOS = async (req, res) => {
             exp.estimatedCostRange.min, exp.estimatedCostRange.max, exp.availableReserve, exp.disclaimer
         ]);
 
-        // Update tourist status
-        await query("UPDATE tourists SET status = 'EMERGENCY' WHERE id = ?", [tourist_id]);
-
         const alertPayload = {
             id: emergencyId,
-            tourist_id,
-            tourist_name: tourist.name,
-            group_name: tourist.group_name,
+            tourist_id: actualId,
+            tourist_name: actualName,
+            group_name: actualGroupName,
             latitude,
             longitude,
             emergency_type,

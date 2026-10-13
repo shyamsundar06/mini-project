@@ -114,7 +114,7 @@ export default function OperatorDashboard() {
 
   const [newBookingAlert, setNewBookingAlert] = useState(null);
 
-  const { activeEmergency, lastAIEvent, lastItineraryEvent, lastLocationEvent, lastBookingEvent, connected } = useSocket();
+  const { activeEmergency, lastAIEvent, lastItineraryEvent, lastLocationEvent, lastBookingEvent, lastDeletedEvent, connected } = useSocket();
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -129,15 +129,10 @@ export default function OperatorDashboard() {
       ]);
 
       if (analyticsRes.data?.summary) {
-        let clientCount = 0;
-        try {
-          const ct = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
-          clientCount = ct.length;
-        } catch (e) {}
-        const serverTotal = analyticsRes.data.summary.totalTourists || 15;
+        const serverTotal = Number(analyticsRes.data.summary.totalTourists) || 0;
         setSummary((prev) => ({
           ...prev,
-          totalTourists: Math.max(serverTotal, 15 + clientCount),
+          totalTourists: serverTotal,
           activeGroups: analyticsRes.data.summary.activeGroups,
           activeEmergencies: analyticsRes.data.summary.activeEmergencies,
           estimatedRevenue: analyticsRes.data.summary.totalTourRevenue
@@ -176,7 +171,7 @@ export default function OperatorDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, [activeEmergency, lastAIEvent, lastItineraryEvent, lastLocationEvent, lastBookingEvent]);
+  }, [activeEmergency, lastAIEvent, lastItineraryEvent, lastLocationEvent, lastBookingEvent, lastDeletedEvent]);
 
   // GPS Simulation in Dashboard
   useEffect(() => {

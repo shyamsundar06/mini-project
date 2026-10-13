@@ -155,7 +155,8 @@ exports.createTourist = async (req, res) => {
             );
         }
 
-        // Add preferences
+        // Add preferences (delete any existing preference first to prevent UNIQUE constraint errors)
+        await query('DELETE FROM tourist_preferences WHERE tourist_id = ?', [touristId]);
         const prefId = `pref_${uuidv4().substring(0, 8)}`;
         await query(
             `INSERT INTO tourist_preferences (id, tourist_id, pace_level, dietary_pref, physical_ability, budget_tier, special_notes)
@@ -230,33 +231,42 @@ exports.deleteTourist = async (req, res) => {
         const { id } = req.params;
 
         // Fetch tourist metadata for real-time notification
-        const tRows = await query('SELECT tour_id, name, group_id FROM tourists WHERE id = ?', [id]);
-        const tourId = tRows[0]?.tour_id || 'tour_ooty_nilgiris';
-        const touristName = tRows[0]?.name;
-
-        // Safe cascade deletions
-        try { await query('DELETE FROM group_members WHERE tourist_id = ?', [id]); } catch (e) {}
-        try { await query('DELETE FROM tourist_preferences WHERE tourist_id = ?', [id]); } catch (e) {}
-        try { await query('DELETE FROM tourist_locations WHERE tourist_id = ?', [id]); } catch (e) {}
-        try { await query('DELETE FROM emergencies WHERE tourist_id = ?', [id]); } catch (e) {}
-        try { await query('DELETE FROM broadcast_acks WHERE tourist_id = ?', [id]); } catch (e) {}
-        try { if (touristName) await query('DELETE FROM tourist_feedback WHERE tourist_name = ?', [touristName]); } catch (e) {}
+        let tRows = await query('SELECT id, tour_id, name, group_id, user_id FROM tourists WHERE id = ?', [id]);
+        if (!tRows || tRows.length === 0) {
+            tRows = await query('SELECT id, tour_id, name, group_id, user_id FROM tourists WHERE LOWER(name) = ?', [id.toLowerCase().trim()]);
+        }
         
-        // Delete from tourists table
-        await query('DELETE FROM tourists WHERE id = ?', [id]);
+        const realTouristId = tRows[0]?.id || id;
+        const touristName = tRows[0]?.name;
+        const tourId = tRows[0]?.tour_id || 'tour_ooty_nilgiris';
+
+        // Safe cascade deletions for all matches
+        const idsToDelete = Array.from(new Set([realTouristId, id].filter(Boolean)));
+        for (const tid of idsToDelete) {
+            try { await query('DELETE FROM group_members WHERE tourist_id = ?', [tid]); } catch (e) {}
+            try { await query('DELETE FROM tourist_preferences WHERE tourist_id = ?', [tid]); } catch (e) {}
+            try { await query('DELETE FROM tourist_locations WHERE tourist_id = ?', [tid]); } catch (e) {}
+            try { await query('DELETE FROM emergencies WHERE tourist_id = ?', [tid]); } catch (e) {}
+            try { await query('DELETE FROM broadcast_acks WHERE tourist_id = ?', [tid]); } catch (e) {}
+            try { await query('DELETE FROM tourists WHERE id = ?', [tid]); } catch (e) {}
+        }
+        if (touristName) {
+            try { await query('DELETE FROM tourist_feedback WHERE tourist_name = ?', [touristName]); } catch (e) {}
+            try { await query('DELETE FROM tourists WHERE LOWER(name) = ?', [touristName.toLowerCase().trim()]); } catch (e) {}
+        }
 
         // 8. Emit real-time deletion events
         try {
             if (req.app && typeof req.app.get === 'function' && req.app.get('io')) {
                 const io = req.app.get('io');
-                io.emit('tourist:deleted', { id, name: touristName, tourId });
+                io.emit('tourist:deleted', { id: realTouristId, name: touristName, tourId });
                 io.emit('group:update', { tour_id: tourId });
             }
         } catch (ioErr) {
             console.warn('[TouristController] Socket emit error on delete:', ioErr.message);
         }
 
-        res.json({ success: true, message: 'Tourist deleted successfully', id });
+        res.json({ success: true, message: 'Tourist deleted successfully', id: realTouristId });
     } catch (err) {
         console.error('[TouristController] deleteTourist error:', err);
         res.status(500).json({ success: false, message: err.message });
@@ -309,6 +319,7 @@ exports.bookTour = async (req, res) => {
             touristId = existingTourist[0].id;
             await query(`
                 UPDATE tourists SET 
+                    user_id = COALESCE(?, user_id),
                     tour_id = ?,
                     group_id = ?,
                     name = ?,
@@ -323,12 +334,21 @@ exports.bookTour = async (req, res) => {
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [
+                user_id || null,
                 tour_id, targetGroupId, tourist_name, language,
                 walking_preference, activity_preference, interests,
                 accessibility_requirements, emergency_contact_name, emergency_contact_phone,
                 touristId
             ]);
         } else {
+            // Clean up any stale record with same user_id before inserting to avoid UNIQUE constraint violation
+            if (user_id) {
+                try {
+                    await query('DELETE FROM group_members WHERE tourist_id IN (SELECT id FROM tourists WHERE user_id = ?)', [user_id]);
+                    await query('DELETE FROM tourist_preferences WHERE tourist_id IN (SELECT id FROM tourists WHERE user_id = ?)', [user_id]);
+                    await query('DELETE FROM tourists WHERE user_id = ?', [user_id]);
+                } catch (e) {}
+            }
             await query(`
                 INSERT INTO tourists (
                     id, user_id, tour_id, group_id, name, age, gender,
@@ -344,10 +364,11 @@ exports.bookTour = async (req, res) => {
             ]);
         }
 
-        // 4. Upsert preferences
+        // 4. Upsert preferences (clean up old first)
+        await query('DELETE FROM tourist_preferences WHERE tourist_id = ?', [touristId]);
         const prefId = `pref_${uuidv4().substring(0, 8)}`;
         await query(`
-            INSERT OR REPLACE INTO tourist_preferences (id, tourist_id, pace_level, dietary_pref, physical_ability, budget_tier, special_notes)
+            INSERT INTO tourist_preferences (id, tourist_id, pace_level, dietary_pref, physical_ability, budget_tier, special_notes)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `, [
             prefId, touristId,

@@ -56,6 +56,7 @@ export default function OperatorLayout() {
     { to: '/operator', icon: LayoutDashboard, label: 'Dashboard', end: true },
     { to: '/operator/tours', icon: MapPin, label: 'Tours' },
     { to: '/operator/tourists', icon: Users, label: 'Tourists' },
+    { to: '/operator/groups', icon: Layers, label: 'Adaptive Groups (AI)' },
     { to: '/operator/live-map', icon: Map, label: 'Live Map' },
     { to: '/operator/weather', icon: CloudSun, label: 'Weather Monitor' },
     { to: '/operator/itinerary', icon: CalendarDays, label: 'Itinerary' },
@@ -162,6 +163,18 @@ export default function OperatorLayout() {
 
           {/* Action Controls: Weather, Simulate SOS, Broadcast, and Notifications */}
           <div className="flex items-center space-x-2.5">
+            {/* Direct Link to Tourist Web Portal */}
+            <a
+              href={typeof window !== 'undefined' && window.location.hostname.includes('localhost') ? "http://localhost:9000" : "/tourist"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 flex items-center space-x-1.5 transition-all shadow-xs"
+              title="Open Tourist App"
+            >
+              <Compass className="w-3.5 h-3.5 text-purple-600" />
+              <span>{typeof window !== 'undefined' && window.location.hostname.includes('localhost') ? 'Tourist Portal (9000) ↗' : 'Tourist Portal ↗'}</span>
+            </a>
+
             {/* Live Weather Quick Link */}
             <button
               onClick={() => navigate('/operator/weather')}

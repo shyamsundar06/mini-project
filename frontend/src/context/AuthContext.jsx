@@ -27,39 +27,78 @@ const defaultTourist = {
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(defaultOperator);
+  const currentPort = typeof window !== 'undefined' ? window.location.port : '';
+  const isOperatorPort = currentPort === '4000' || currentPort === '5173';
+  const isTouristPort = currentPort === '9000' || currentPort === '5174';
+
+  const initialRoleDefault = isTouristPort ? defaultTourist : defaultOperator;
+  const [user, setUser] = useState(initialRoleDefault);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     try {
+      const port = window.location.port;
+      const isOperatorOnly = port === '4000' || port === '5173';
+      const isTouristOnly = port === '9000' || port === '5174';
+
       const storedUser = localStorage.getItem('tourism_user');
       const storedToken = localStorage.getItem('tourism_token');
 
+      let parsedUser = null;
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
-        localStorage.setItem('tourism_user', JSON.stringify(defaultOperator));
-        setUser(defaultOperator);
+        try {
+          parsedUser = JSON.parse(storedUser);
+        } catch (e) {}
       }
 
-      // Automatically obtain and cache valid JWT if missing
-      if (!storedToken) {
-        authApi.login({ email: 'operator@tourism.com', password: 'Password123!' })
-          .then((res) => {
-            if (res.data?.token) {
-              localStorage.setItem('tourism_token', res.data.token);
-              if (res.data?.user) {
-                localStorage.setItem('tourism_user', JSON.stringify(res.data.user));
-                setUser(res.data.user);
-              }
-            }
-          })
-          .catch(() => {
-            // Silently handled by backend middleware fallback
-          });
+      if (isOperatorOnly) {
+        // Enforce Operator on port 5173
+        if (!parsedUser || parsedUser.role !== 'operator') {
+          localStorage.setItem('tourism_user', JSON.stringify(defaultOperator));
+          setUser(defaultOperator);
+        } else {
+          setUser(parsedUser);
+        }
+
+        if (!storedToken || (!parsedUser || parsedUser.role !== 'operator')) {
+          authApi.login({ email: 'operator@tourism.com', password: 'Password123!' })
+            .then((res) => {
+              if (res.data?.token) localStorage.setItem('tourism_token', res.data.token);
+            })
+            .catch(() => {});
+        }
+        return;
+      }
+
+      if (isTouristOnly) {
+        // Enforce Tourist on port 5174
+        if (!parsedUser || parsedUser.role !== 'tourist') {
+          localStorage.setItem('tourism_user', JSON.stringify(defaultTourist));
+          setUser(defaultTourist);
+        } else {
+          setUser(parsedUser);
+        }
+
+        if (!storedToken || (!parsedUser || parsedUser.role !== 'tourist')) {
+          authApi.login({ email: 'rahul.kumar@gmail.com', password: 'Password123!' })
+            .then((res) => {
+              if (res.data?.token) localStorage.setItem('tourism_token', res.data.token);
+            })
+            .catch(() => {});
+        }
+        return;
+      }
+
+      // Default fallback (e.g. Vercel deployment on port 80/443)
+      if (parsedUser) {
+        setUser(parsedUser);
+      } else {
+        const fallback = window.location.pathname.startsWith('/tourist') ? defaultTourist : defaultOperator;
+        localStorage.setItem('tourism_user', JSON.stringify(fallback));
+        setUser(fallback);
       }
     } catch (e) {
-      setUser(defaultOperator);
+      setUser(initialRoleDefault);
     }
   }, []);
 

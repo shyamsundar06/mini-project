@@ -17,6 +17,7 @@ import Register from './pages/auth/Register';
 import OperatorDashboard from './pages/operator/OperatorDashboard';
 import TourManagement from './pages/operator/TourManagement';
 import TouristManagement from './pages/operator/TouristManagement';
+import AdaptiveGrouping from './pages/operator/AdaptiveGrouping';
 import LiveMap from './pages/operator/LiveMap';
 import DynamicItinerary from './pages/operator/DynamicItinerary';
 import WeatherMonitor from './pages/operator/WeatherMonitor';
@@ -87,6 +88,9 @@ class ErrorBoundary extends Component {
 
 function AppRoutes() {
   const { user } = useAuth();
+  const currentPort = typeof window !== 'undefined' ? window.location.port : '';
+  const isOperatorPort = currentPort === '4000' || currentPort === '5173';
+  const isTouristPort = currentPort === '9000' || currentPort === '5174';
 
   return (
     <Routes>
@@ -95,11 +99,16 @@ function AppRoutes() {
       <Route path="/register" element={<Register />} />
 
       {/* Operator Dashboard Routes */}
-      <Route path="/operator" element={<OperatorLayout />}>
+      <Route
+        path="/operator"
+        element={
+          isTouristPort ? <Navigate to="/tourist" replace /> : <OperatorLayout />
+        }
+      >
         <Route index element={<OperatorDashboard />} />
         <Route path="tours" element={<TourManagement />} />
         <Route path="tourists" element={<TouristManagement />} />
-        <Route path="groups" element={<Navigate to="/operator/tourists" replace />} />
+        <Route path="groups" element={<AdaptiveGrouping />} />
         <Route path="live-map" element={<LiveMap />} />
         <Route path="weather" element={<WeatherMonitor />} />
         <Route path="itinerary" element={<DynamicItinerary />} />
@@ -110,7 +119,12 @@ function AppRoutes() {
       </Route>
 
       {/* Tourist Mobile App Routes */}
-      <Route path="/tourist" element={<TouristLayout />}>
+      <Route
+        path="/tourist"
+        element={
+          isOperatorPort ? <Navigate to="/operator" replace /> : <TouristLayout />
+        }
+      >
         <Route index element={<TouristDashboard />} />
         <Route path="voice" element={<VoiceAssistant />} />
         <Route path="map" element={<TouristMap />} />
@@ -121,7 +135,11 @@ function AppRoutes() {
       <Route
         path="*"
         element={
-          user?.role === 'tourist' ? (
+          isTouristPort ? (
+            <Navigate to="/tourist" replace />
+          ) : isOperatorPort ? (
+            <Navigate to="/operator" replace />
+          ) : user?.role === 'tourist' ? (
             <Navigate to="/tourist" replace />
           ) : (
             <Navigate to="/operator" replace />
