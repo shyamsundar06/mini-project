@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import TouristFeedbackModal from '../../components/TouristFeedbackModal';
 import { useAuth } from '../../context/AuthContext';
-import { itineraryApi, broadcastApi } from '../../services/api';
+import { itineraryApi, broadcastApi, weatherApi } from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -41,6 +41,7 @@ export default function TouristDashboard() {
   });
   const [showFullSchedule, setShowFullSchedule] = useState(true);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [weather, setWeather] = useState(null);
 
   const [touristInfo, setTouristInfo] = useState({
     name: 'Rahul Kumar',
@@ -57,9 +58,10 @@ export default function TouristDashboard() {
 
   const loadData = async () => {
     try {
-      const [itinRes, bcRes] = await Promise.all([
+      const [itinRes, bcRes, weatherRes] = await Promise.all([
         itineraryApi.get('tour_ooty_nilgiris', 1),
-        broadcastApi.getAll('tour_ooty_nilgiris', touristInfo.groupId)
+        broadcastApi.getAll('tour_ooty_nilgiris', touristInfo.groupId),
+        weatherApi.getLive({ tour_id: 'tour_ooty_nilgiris' }).catch(() => null)
       ]);
 
       if (itinRes.data?.itinerary?.items) {
@@ -72,6 +74,10 @@ export default function TouristDashboard() {
 
       if (bcRes.data?.broadcasts) {
         setBroadcasts(bcRes.data.broadcasts);
+      }
+
+      if (weatherRes?.data?.telemetry) {
+        setWeather(weatherRes.data.telemetry);
       }
     } catch (e) {
       console.log('Error loading tourist dashboard:', e);
@@ -185,6 +191,62 @@ export default function TouristDashboard() {
           </span>
         </div>
       </div>
+
+      {/* Real-Time Tour Place Weather & Safety Card */}
+      {weather && (
+        <div className="glass-panel p-4 rounded-3xl border border-blue-200 bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-white space-y-3 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1.5 text-blue-800">
+              <CloudSun className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-bold uppercase tracking-wider">
+                Live Weather & Safety Radar
+              </span>
+            </div>
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+              weather.alerts?.[0]?.level === 'CRITICAL'
+                ? 'bg-rose-100 text-rose-800'
+                : weather.alerts?.[0]?.level === 'WARNING'
+                ? 'bg-amber-100 text-amber-800'
+                : 'bg-emerald-100 text-emerald-800'
+            }`}>
+              {weather.alerts?.[0]?.level === 'CRITICAL' ? '🚨 Extreme Alert' : weather.alerts?.[0]?.level === 'WARNING' ? '⚠️ Weather Alert' : '☀️ Optimal'}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-baseline space-x-1.5">
+                <span className="text-2xl font-black text-slate-900">
+                  {weather.current?.temperature?.toFixed(1) || 17}°C
+                </span>
+                <span className="text-xs font-bold text-blue-700">
+                  {weather.current?.condition}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                {weather.place || 'Ooty Botanical Gardens'} • {weather.current?.rainProbability}% Rain Probability
+              </p>
+            </div>
+            <div className="text-right text-[11px] text-slate-500 font-medium">
+              <p>Wind: <strong>{weather.current?.windSpeed} km/h</strong></p>
+              <p>Humidity: <strong>{weather.current?.humidity}%</strong></p>
+            </div>
+          </div>
+
+          {/* Alert Message for Tourists if any */}
+          {weather.alerts?.[0]?.suggestedAnnouncement && (
+            <div className={`p-2.5 rounded-2xl text-[11px] font-medium leading-relaxed ${
+              weather.alerts[0].level === 'CRITICAL'
+                ? 'bg-rose-100/80 text-rose-900 border border-rose-200'
+                : weather.alerts[0].level === 'WARNING'
+                ? 'bg-amber-100/80 text-amber-900 border border-amber-200'
+                : 'bg-white/80 text-slate-700 border border-slate-200'
+            }`}>
+              {weather.alerts[0].suggestedAnnouncement}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* My Group Card */}
       <div className="glass-card p-4 rounded-2xl border border-slate-200 space-y-2 shadow-xs bg-white">

@@ -17,6 +17,7 @@ const expenseRoutes = require('./routes/expenseRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const simulationRoutes = require('./routes/simulationRoutes');
 const broadcastRoutes = require('./routes/broadcastRoutes');
+const weatherRoutes = require('./routes/weatherRoutes');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/simulation', simulationRoutes);
 app.use('/api/broadcasts', broadcastRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

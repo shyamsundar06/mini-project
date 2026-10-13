@@ -22,7 +22,8 @@ import {
   ChevronLeft,
   ShieldAlert,
   Compass,
-  Megaphone
+  Megaphone,
+  CloudSun
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -57,6 +58,7 @@ export default function OperatorLayout() {
     { to: '/operator/tourists', icon: Users, label: 'Tourists' },
     { to: '/operator/groups', icon: Layers, label: 'Adaptive Groups' },
     { to: '/operator/live-map', icon: Map, label: 'Live Map' },
+    { to: '/operator/weather', icon: CloudSun, label: 'Weather Monitor' },
     { to: '/operator/itinerary', icon: CalendarDays, label: 'Itinerary' },
     { to: '/operator/ai-intelligence', icon: Sparkles, label: 'AI Intelligence' },
     { to: '/operator/emergencies', icon: AlertTriangle, label: 'Emergencies' },
@@ -167,8 +169,18 @@ export default function OperatorLayout() {
             </span>
           </div>
 
-          {/* Action Controls: Simulate SOS, Broadcast, and Notifications */}
+          {/* Action Controls: Weather, Simulate SOS, Broadcast, and Notifications */}
           <div className="flex items-center space-x-2.5">
+            {/* Live Weather Quick Link */}
+            <button
+              onClick={() => navigate('/operator/weather')}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-100 flex items-center space-x-1.5 transition-all shadow-xs"
+              title="Open Real-Time Weather Monitoring & Safety Alerts"
+            >
+              <CloudSun className="w-3.5 h-3.5 text-sky-600" />
+              <span>Weather Radar</span>
+            </button>
+
             {/* Simulate SOS Button */}
             <button
               onClick={triggerEmergencySOS}

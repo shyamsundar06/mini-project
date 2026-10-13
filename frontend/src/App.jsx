@@ -20,6 +20,7 @@ import TouristManagement from './pages/operator/TouristManagement';
 import AdaptiveGrouping from './pages/operator/AdaptiveGrouping';
 import LiveMap from './pages/operator/LiveMap';
 import DynamicItinerary from './pages/operator/DynamicItinerary';
+import WeatherMonitor from './pages/operator/WeatherMonitor';
 import AIIntelligence from './pages/operator/AIIntelligence';
 import EmergencyCenter from './pages/operator/EmergencyCenter';
 import CostEstimator from './pages/operator/CostEstimator';
@@ -101,6 +102,7 @@ function AppRoutes() {
         <Route path="tourists" element={<TouristManagement />} />
         <Route path="groups" element={<AdaptiveGrouping />} />
         <Route path="live-map" element={<LiveMap />} />
+        <Route path="weather" element={<WeatherMonitor />} />
         <Route path="itinerary" element={<DynamicItinerary />} />
         <Route path="ai-intelligence" element={<AIIntelligence />} />
         <Route path="emergencies" element={<EmergencyCenter />} />

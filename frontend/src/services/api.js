@@ -121,4 +121,12 @@ export const simulationApi = {
   reset: () => api.post('/simulation/reset'),
 };
 
+// Real-Time Weather Monitoring & Alerts APIs
+export const weatherApi = {
+  getLive: (params) => api.get('/weather/current', { params }),
+  getTourDestinations: (params) => api.get('/weather/tour-destinations', { params }),
+  broadcastAlert: (data) => api.post('/weather/broadcast-alert', data),
+  searchPlaces: (q) => api.get(`/weather/search-places?q=${encodeURIComponent(q)}`),
+};
+
 export default api;
