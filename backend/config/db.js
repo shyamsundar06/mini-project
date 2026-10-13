@@ -17,6 +17,18 @@ const sqliteFilePath = isVercel
 
 function initSqlite() {
     return new Promise((resolve, reject) => {
+        if (isVercel) {
+            const bundledPath = path.join(__dirname, '../../database/intelligent_tourism.sqlite');
+            if (fs.existsSync(bundledPath) && (!fs.existsSync(sqliteFilePath) || fs.statSync(sqliteFilePath).size === 0)) {
+                try {
+                    fs.copyFileSync(bundledPath, sqliteFilePath);
+                    console.log('[DB] Copied pre-seeded SQLite database to /tmp');
+                } catch (copyErr) {
+                    console.warn('[DB] Could not copy bundled sqlite file:', copyErr.message);
+                }
+            }
+        }
+
         sqliteDb = new sqlite3.Database(sqliteFilePath, (err) => {
             if (err) {
                 console.error('[DB] SQLite connection failed:', err);
@@ -52,8 +64,8 @@ function allSqlite(sql, params = []) {
 }
 
 async function setupSqliteTables() {
-    // Check if tables already exist
-    const rows = await allSqlite("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+    // Check if tourists table already exists
+    const rows = await allSqlite("SELECT name FROM sqlite_master WHERE type='table' AND name='tourists'");
     if (rows && rows.length > 0) {
         console.log('[DB] SQLite tables already initialized.');
         return;
