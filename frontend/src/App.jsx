@@ -17,7 +17,6 @@ import Register from './pages/auth/Register';
 import OperatorDashboard from './pages/operator/OperatorDashboard';
 import TourManagement from './pages/operator/TourManagement';
 import TouristManagement from './pages/operator/TouristManagement';
-import AdaptiveGrouping from './pages/operator/AdaptiveGrouping';
 import LiveMap from './pages/operator/LiveMap';
 import DynamicItinerary from './pages/operator/DynamicItinerary';
 import WeatherMonitor from './pages/operator/WeatherMonitor';
@@ -100,7 +99,7 @@ function AppRoutes() {
         <Route index element={<OperatorDashboard />} />
         <Route path="tours" element={<TourManagement />} />
         <Route path="tourists" element={<TouristManagement />} />
-        <Route path="groups" element={<AdaptiveGrouping />} />
+        <Route path="groups" element={<Navigate to="/operator/tourists" replace />} />
         <Route path="live-map" element={<LiveMap />} />
         <Route path="weather" element={<WeatherMonitor />} />
         <Route path="itinerary" element={<DynamicItinerary />} />

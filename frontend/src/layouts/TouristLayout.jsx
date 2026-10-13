@@ -6,7 +6,6 @@ import {
   MapPin,
   ShieldAlert,
   Home,
-  ArrowRightLeft,
   Globe,
   Check,
   Sparkles,
@@ -160,18 +159,6 @@ export default function TouristLayout() {
             >
               <Globe className="w-3.5 h-3.5 text-blue-600" />
               <span className="text-[11px]">{currentLanguageObj.native}</span>
-            </button>
-
-            {/* Switch to Operator */}
-            <button
-              onClick={() => {
-                switchRoleDemo('operator');
-                navigate('/operator');
-              }}
-              title={t('switchToOperator')}
-              className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:text-blue-600 border border-slate-200"
-            >
-              <ArrowRightLeft className="w-4 h-4" />
             </button>
           </div>
         </div>

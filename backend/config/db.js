@@ -419,22 +419,21 @@ async function populateSeedData() {
     }
 
     const tourists = [
-        ['trt_1', 'usr_tourist_1', 'tour_ooty_nilgiris', 'grp_alpha', 'Rahul Kumar', 28, 'Male', 'Hindi', 'Fast', 'Adventurous', 'Photography, Trekking, Wildlife', 'None', 'Sunita Kumar', '+91 98451 99991', 11.4192, 76.7115, 'ACTIVE'],
-        ['trt_2', 'usr_tourist_2', 'tour_ooty_nilgiris', 'grp_alpha', 'Priya Sharma', 26, 'Female', 'English', 'Fast', 'Adventurous', 'Mountain biking, Landscapes, Camping', 'None', 'Mohit Sharma', '+91 98451 99992', 11.4194, 76.7118, 'ACTIVE'],
-        ['trt_3', 'usr_tourist_3', 'tour_ooty_nilgiris', 'grp_alpha', 'Arun Swaminathan', 30, 'Male', 'Tamil', 'Fast', 'Nature', 'Bird watching, Botany, Trekking', 'None', 'Swaminathan R', '+91 98451 99993', 11.4188, 76.7110, 'ACTIVE'],
-        ['trt_4', 'usr_tourist_4', 'tour_ooty_nilgiris', 'grp_beta', 'Deepa Nair', 41, 'Female', 'Malayalam', 'Moderate', 'Cultural', 'Colonial History, Museums, Local Cuisine', 'None', 'Radhakrishnan N', '+91 98451 99994', 11.4180, 76.7100, 'ACTIVE'],
-        ['trt_5', 'usr_tourist_5', 'tour_ooty_nilgiris', 'grp_beta', 'Kavitha Reddy', 39, 'Female', 'Telugu', 'Moderate', 'Cultural', 'Handicrafts, Architecture, Heritage', 'None', 'Prabhakar Reddy', '+91 98451 99995', 11.4182, 76.7103, 'ACTIVE'],
-        ['trt_6', 'usr_tourist_6', 'tour_ooty_nilgiris', 'grp_gamma', 'Suresh Hegde', 62, 'Male', 'Kannada', 'Slow', 'Relaxed', 'Botanical gardens, Meditation, Tea Tasting', 'Walking Cane', 'Raghav Hegde', '+91 98451 99996', 11.4175, 76.7092, 'ACTIVE'],
-        ['trt_7', 'usr_tourist_7', 'tour_ooty_nilgiris', 'grp_alpha', 'Ananya Patel', 27, 'Female', 'English', 'Fast', 'Adventurous', 'Trekking, Rock climbing, Vlogging', 'None', 'Hitesh Patel', '+91 98451 99997', 11.4190, 76.7120, 'ACTIVE'],
-        ['trt_8', 'usr_tourist_8', 'tour_ooty_nilgiris', 'grp_beta', 'Rohan Mehra', 44, 'Male', 'Hindi', 'Moderate', 'Cultural', 'Antiques, Colonial Architecture, Tea Blending', 'None', 'Shalini Mehra', '+91 98451 99998', 11.4184, 76.7105, 'ACTIVE'],
-        ['trt_9', 'usr_tourist_9', 'tour_ooty_nilgiris', 'grp_gamma', 'Meera Subramanian', 59, 'Female', 'Tamil', 'Slow', 'Relaxed', 'Spiritual sites, Flower shows, Classical music', 'Needs ramp access', 'Kalyanaraman S', '+91 98451 99999', 11.4173, 76.7090, 'ACTIVE'],
-        ['trt_10', 'usr_tourist_10', 'tour_ooty_nilgiris', 'grp_alpha', 'Karthik Raja', 29, 'Male', 'Tamil', 'Fast', 'Nature', 'Off-road exploration, Photography, Astronomy', 'None', 'Selvi Raja', '+91 98452 00001', 11.4195, 76.7116, 'ACTIVE'],
-        ['trt_11', 'usr_tourist_11', 'tour_ooty_nilgiris', 'grp_beta', 'Neha Verma', 38, 'Female', 'Hindi', 'Moderate', 'Cultural', 'Local markets, Culinary workshops, Folk art', 'None', 'Vikas Verma', '+91 98452 00002', 11.4181, 76.7108, 'ACTIVE'],
-        ['trt_12', 'usr_tourist_12', 'tour_ooty_nilgiris', 'grp_gamma', 'Girish Kulkarni', 65, 'Male', 'Kannada', 'Slow', 'Relaxed', 'Lake promenades, Bird listening, History books', 'Mild arthritis', 'Manjula K', '+91 98452 00003', 11.4174, 76.7088, 'ACTIVE'],
-        ['trt_13', 'usr_tourist_13', 'tour_ooty_nilgiris', 'grp_beta', 'Sneha Menon', 36, 'Female', 'Malayalam', 'Moderate', 'Nature', 'Eco-farms, Spice gardens, Photography', 'None', 'Ajay Menon', '+91 98452 00004', 11.4186, 76.7102, 'ACTIVE'],
-        ['trt_14', 'usr_tourist_14', 'tour_ooty_nilgiris', 'grp_gamma', 'Venkatesh Rao', 61, 'Male', 'Telugu', 'Slow', 'Relaxed', 'Herbal gardens, Souvenirs, Calm viewpoints', 'Mild asthma', 'Laxmi Rao', '+91 98452 00005', 11.4172, 76.7094, 'ACTIVE'],
-        ['trt_15', 'usr_tourist_15', 'tour_ooty_nilgiris', 'grp_alpha', 'Divya Balaji', 25, 'Female', 'Tamil', 'Fast', 'Adventurous', 'Trail running, Wildlife safari, Drone filming', 'None', 'Balaji K', '+91 98452 00006', 11.4196, 76.7119, 'ACTIVE'],
-        ['trt_16', 'usr_tourist_16', 'tour_ooty_nilgiris', 'grp_gamma', 'Amitabh Sen', 57, 'Male', 'English', 'Slow', 'Relaxed', 'Historical archives, Tea factory, Scenic drives', 'None', 'Rupa Sen', '+91 98452 00007', 11.4176, 76.7091, 'ACTIVE']
+        ['trt_1', 'usr_tourist_1', 'tour_ooty_nilgiris', 'grp_alpha', 'Aarav Nambiar', 27, 'Male', 'Tamil', 'Fast', 'Adventurous', 'Photography, Trekking, Wildlife', 'None', 'Anjali Nambiar', '+91 98451 11001', 11.4192, 76.7115, 'ACTIVE'],
+        ['trt_2', 'usr_tourist_2', 'tour_ooty_nilgiris', 'grp_alpha', 'Priya Sharma', 25, 'Female', 'English', 'Fast', 'Adventurous', 'Mountain biking, Landscapes, Camping', 'None', 'Mohit Sharma', '+91 98451 11002', 11.4194, 76.7118, 'ACTIVE'],
+        ['trt_3', 'usr_tourist_3', 'tour_ooty_nilgiris', 'grp_alpha', 'Siddharth Roy', 29, 'Male', 'Hindi', 'Fast', 'Nature', 'Bird watching, Botany, Trail Running', 'None', 'Sunita Roy', '+91 98451 11003', 11.4188, 76.7110, 'ACTIVE'],
+        ['trt_4', 'usr_tourist_4', 'tour_ooty_nilgiris', 'grp_alpha', 'Ananya Patel', 26, 'Female', 'Gujarati', 'Fast', 'Adventurous', 'Trekking, Rock climbing, Vlogging', 'None', 'Hitesh Patel', '+91 98451 11004', 11.4190, 76.7120, 'ACTIVE'],
+        ['trt_5', 'usr_tourist_5', 'tour_ooty_nilgiris', 'grp_alpha', 'Karthik Raja', 28, 'Male', 'Tamil', 'Fast', 'Nature', 'Off-road exploration, Astronomy, Drone filming', 'None', 'Selvi Raja', '+91 98451 11005', 11.4195, 76.7116, 'ACTIVE'],
+        ['trt_6', 'usr_tourist_6', 'tour_ooty_nilgiris', 'grp_beta', 'Deepa Nair', 39, 'Female', 'Malayalam', 'Moderate', 'Cultural', 'Colonial History, Museums, Local Cuisine', 'None', 'Radhakrishnan N', '+91 98451 22001', 11.4180, 76.7100, 'ACTIVE'],
+        ['trt_7', 'usr_tourist_7', 'tour_ooty_nilgiris', 'grp_beta', 'Rohan Verma', 41, 'Male', 'Hindi', 'Moderate', 'Cultural', 'Antiques, Colonial Architecture, Tea Blending', 'None', 'Shalini Verma', '+91 98451 22002', 11.4184, 76.7105, 'ACTIVE'],
+        ['trt_8', 'usr_tourist_8', 'tour_ooty_nilgiris', 'grp_beta', 'Kavitha Reddy', 37, 'Female', 'Telugu', 'Moderate', 'Cultural', 'Handicrafts, Architecture, Heritage', 'None', 'Prabhakar Reddy', '+91 98451 22003', 11.4182, 76.7103, 'ACTIVE'],
+        ['trt_9', 'usr_tourist_9', 'tour_ooty_nilgiris', 'grp_beta', 'Arjun Deshmukh', 34, 'Male', 'Marathi', 'Moderate', 'Cultural', 'Tea tasting, Colonial libraries, Photography', 'None', 'Pooja Deshmukh', '+91 98451 22004', 11.4181, 76.7108, 'ACTIVE'],
+        ['trt_10', 'usr_tourist_10', 'tour_ooty_nilgiris', 'grp_beta', 'Sneha Menon', 33, 'Female', 'Malayalam', 'Moderate', 'Nature', 'Eco-farms, Spice gardens, Photography', 'None', 'Ajay Menon', '+91 98451 22005', 11.4186, 76.7102, 'ACTIVE'],
+        ['trt_11', 'usr_tourist_11', 'tour_ooty_nilgiris', 'grp_gamma', 'Suresh Hegde', 62, 'Male', 'Kannada', 'Slow', 'Relaxed', 'Botanical gardens, Meditation, Tea Tasting', 'Walking Cane', 'Raghav Hegde', '+91 98451 33001', 11.4175, 76.7092, 'ACTIVE'],
+        ['trt_12', 'usr_tourist_12', 'tour_ooty_nilgiris', 'grp_gamma', 'Meera Subramanian', 59, 'Female', 'Tamil', 'Slow', 'Relaxed', 'Spiritual sites, Flower shows, Classical music', 'Needs ramp access', 'Kalyanaraman S', '+91 98451 33002', 11.4173, 76.7090, 'ACTIVE'],
+        ['trt_13', 'usr_tourist_13', 'tour_ooty_nilgiris', 'grp_gamma', 'Girish Kulkarni', 65, 'Male', 'Kannada', 'Slow', 'Relaxed', 'Lake promenades, Bird listening, History books', 'Mild arthritis', 'Manjula K', '+91 98451 33003', 11.4174, 76.7088, 'ACTIVE'],
+        ['trt_14', 'usr_tourist_14', 'tour_ooty_nilgiris', 'grp_gamma', 'Venkatesh Rao', 61, 'Male', 'Telugu', 'Slow', 'Relaxed', 'Herbal gardens, Souvenirs, Calm viewpoints', 'Mild asthma', 'Laxmi Rao', '+91 98451 33004', 11.4172, 76.7094, 'ACTIVE'],
+        ['trt_15', 'usr_tourist_15', 'tour_ooty_nilgiris', 'grp_gamma', 'Amitabh Sen', 58, 'Male', 'English', 'Slow', 'Relaxed', 'Historical archives, Tea factory, Scenic drives', 'None', 'Rupa Sen', '+91 98451 33005', 11.4176, 76.7091, 'ACTIVE']
     ];
     for (const t of tourists) {
         await runSqlite('INSERT OR IGNORE INTO tourists (id, user_id, tour_id, group_id, name, age, gender, preferred_language, walking_preference, activity_preference, interests, accessibility_requirements, emergency_contact_name, emergency_contact_phone, current_latitude, current_longitude, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', t);
@@ -444,19 +443,18 @@ async function populateSeedData() {
         ['gm_1', 'grp_alpha', 'trt_1', 96],
         ['gm_2', 'grp_alpha', 'trt_2', 95],
         ['gm_3', 'grp_alpha', 'trt_3', 94],
-        ['gm_4', 'grp_alpha', 'trt_7', 97],
-        ['gm_5', 'grp_alpha', 'trt_10', 93],
-        ['gm_6', 'grp_alpha', 'trt_15', 96],
-        ['gm_7', 'grp_beta', 'trt_4', 92],
-        ['gm_8', 'grp_beta', 'trt_5', 90],
-        ['gm_9', 'grp_beta', 'trt_8', 91],
-        ['gm_10', 'grp_beta', 'trt_11', 89],
-        ['gm_11', 'grp_beta', 'trt_13', 93],
-        ['gm_12', 'grp_gamma', 'trt_6', 88],
-        ['gm_13', 'grp_gamma', 'trt_9', 90],
-        ['gm_14', 'grp_gamma', 'trt_12', 87],
-        ['gm_15', 'grp_gamma', 'trt_14', 86],
-        ['gm_16', 'grp_gamma', 'trt_16', 89]
+        ['gm_4', 'grp_alpha', 'trt_4', 97],
+        ['gm_5', 'grp_alpha', 'trt_5', 93],
+        ['gm_6', 'grp_beta', 'trt_6', 92],
+        ['gm_7', 'grp_beta', 'trt_7', 91],
+        ['gm_8', 'grp_beta', 'trt_8', 90],
+        ['gm_9', 'grp_beta', 'trt_9', 94],
+        ['gm_10', 'grp_beta', 'trt_10', 93],
+        ['gm_11', 'grp_gamma', 'trt_11', 88],
+        ['gm_12', 'grp_gamma', 'trt_12', 90],
+        ['gm_13', 'grp_gamma', 'trt_13', 87],
+        ['gm_14', 'grp_gamma', 'trt_14', 86],
+        ['gm_15', 'grp_gamma', 'trt_15', 89]
     ];
     for (const m of members) {
         await runSqlite('INSERT OR IGNORE INTO group_members (id, group_id, tourist_id, compatibility_score) VALUES (?, ?, ?, ?)', m);

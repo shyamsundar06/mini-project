@@ -45,6 +45,16 @@ export default function TouristManagement() {
       ]);
 
       let serverTourists = tRes.data?.tourists || [];
+      // Reset local cache to fresh state
+      const DATA_VERSION = 'v2_fresh_15_tourists';
+      if (localStorage.getItem('tourism_data_version') !== DATA_VERSION) {
+        localStorage.setItem('tourism_data_version', DATA_VERSION);
+        localStorage.removeItem('tourism_client_added_tourists');
+        localStorage.removeItem('tourism_deleted_tourist_names');
+        localStorage.removeItem('tourism_deleted_tourist_ids');
+        localStorage.removeItem('tourist_active_booking');
+      }
+
       let clientTourists = [];
       let deletedIds = [];
       let deletedNames = [];
@@ -92,7 +102,18 @@ export default function TouristManagement() {
         (t) => !deletedIds.includes(t.id) && !deletedNames.includes(t.name?.toLowerCase())
       );
 
-      setTourists(activeTourists);
+      // Deduplicate by tourist name (case-insensitive) so nobody is ever rendered twice
+      const seenNames = new Set();
+      const uniqueTourists = [];
+      for (const t of activeTourists) {
+        const clean = t.name ? t.name.toLowerCase().trim() : '';
+        if (clean && !seenNames.has(clean)) {
+          seenNames.add(clean);
+          uniqueTourists.push(t);
+        }
+      }
+
+      setTourists(uniqueTourists);
       if (gRes.data?.groups) setGroups(gRes.data.groups);
     } catch (err) {
       console.error('Error fetching tourists:', err);
@@ -128,23 +149,27 @@ export default function TouristManagement() {
       // Store in local storage immediately
       try {
         const existing = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
-        const filtered = existing.filter((t) => t.name.toLowerCase() !== formData.name.toLowerCase());
+        const filtered = existing.filter((t) => t.name.toLowerCase().trim() !== formData.name.toLowerCase().trim());
         filtered.unshift(newT);
         localStorage.setItem('tourism_client_added_tourists', JSON.stringify(filtered));
 
         // If it was previously marked deleted, un-delete it
         const deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
-        const cleanDeleted = deletedNames.filter((n) => n !== formData.name.toLowerCase());
+        const cleanDeleted = deletedNames.filter((n) => n !== formData.name.toLowerCase().trim());
         localStorage.setItem('tourism_deleted_tourist_names', JSON.stringify(cleanDeleted));
       } catch (e) {}
 
-      // Optimistic state update
-      setTourists((prev) => [newT, ...prev]);
+      // Optimistic state update with deduplication
+      setTourists((prev) => {
+        const filtered = prev.filter((t) => t.name.toLowerCase().trim() !== formData.name.toLowerCase().trim());
+        return [newT, ...filtered];
+      });
 
       await touristApi.create({
         ...formData,
         tour_id: 'tour_ooty_nilgiris'
       });
+      fetchTourists();
       setShowAddModal(false);
       setFormData({
         name: '',

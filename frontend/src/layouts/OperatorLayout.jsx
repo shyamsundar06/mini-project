@@ -56,7 +56,6 @@ export default function OperatorLayout() {
     { to: '/operator', icon: LayoutDashboard, label: 'Dashboard', end: true },
     { to: '/operator/tours', icon: MapPin, label: 'Tours' },
     { to: '/operator/tourists', icon: Users, label: 'Tourists' },
-    { to: '/operator/groups', icon: Layers, label: 'Adaptive Groups' },
     { to: '/operator/live-map', icon: Map, label: 'Live Map' },
     { to: '/operator/weather', icon: CloudSun, label: 'Weather Monitor' },
     { to: '/operator/itinerary', icon: CalendarDays, label: 'Itinerary' },
@@ -119,16 +118,18 @@ export default function OperatorLayout() {
           </nav>
         </div>
 
-        {/* Sidebar Footer / User Profile & Role Switch */}
+        {/* Sidebar Footer / Tour Coordinator Profile */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/60">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
-                {user?.name?.charAt(0) || 'O'}
+                {((user?.role === 'operator' && user?.name && !user.name.toLowerCase().includes('sonika') && !user.name.toLowerCase().includes('subika')) ? user.name : 'Vikram Anand').charAt(0)}
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-slate-800 truncate">{user?.name || 'Vikram Anand'}</p>
-                <p className="text-[10px] text-emerald-600 font-semibold capitalize">Tour Operator</p>
+                <p className="text-xs font-bold text-slate-800 truncate">
+                  {(user?.role === 'operator' && user?.name && !user.name.toLowerCase().includes('sonika') && !user.name.toLowerCase().includes('subika')) ? user.name : 'Vikram Anand'}
+                </p>
+                <p className="text-[10px] text-emerald-600 font-semibold capitalize">Tour Coordinator</p>
               </div>
             </div>
             <button
@@ -139,16 +140,6 @@ export default function OperatorLayout() {
               <LogOut className="w-4 h-4" />
             </button>
           </div>
-
-          <button
-            onClick={() => {
-              switchRoleDemo('tourist');
-              navigate('/tourist');
-            }}
-            className="w-full py-1.5 px-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-sm"
-          >
-            <span>📱 Switch to Tourist App View</span>
-          </button>
         </div>
       </aside>
 

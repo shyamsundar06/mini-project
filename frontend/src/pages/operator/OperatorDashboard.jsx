@@ -90,7 +90,7 @@ function MapRecenter({ center, zoom }) {
 export default function OperatorDashboard() {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({
-    totalTourists: 16,
+    totalTourists: 15,
     activeGroups: 3,
     activeTours: 1,
     activeEmergencies: 0,
@@ -134,10 +134,10 @@ export default function OperatorDashboard() {
           const ct = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
           clientCount = ct.length;
         } catch (e) {}
-        const serverTotal = analyticsRes.data.summary.totalTourists || 16;
+        const serverTotal = analyticsRes.data.summary.totalTourists || 15;
         setSummary((prev) => ({
           ...prev,
-          totalTourists: Math.max(serverTotal, 16 + clientCount),
+          totalTourists: Math.max(serverTotal, 15 + clientCount),
           activeGroups: analyticsRes.data.summary.activeGroups,
           activeEmergencies: analyticsRes.data.summary.activeEmergencies,
           estimatedRevenue: analyticsRes.data.summary.totalTourRevenue
@@ -301,16 +301,16 @@ export default function OperatorDashboard() {
             <p className="text-2xl font-bold text-slate-900">{summary.totalTourists}</p>
             <span className="text-[11px] text-emerald-600 font-bold">100% Active</span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">16 checked-in across 3 groups</p>
+          <p className="text-[11px] text-slate-500 mt-1">15 checked-in (5 per group across 3 groups)</p>
         </div>
 
         {/* Active Groups */}
         <div
-          onClick={() => navigate('/operator/groups')}
+          onClick={() => navigate('/operator/tourists')}
           className="glass-card p-5 rounded-2xl cursor-pointer transition-all"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Adaptive Groups</span>
+            <span className="text-xs font-semibold text-slate-500">Active Groups</span>
             <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
               <Layers className="w-4 h-4" />
             </div>
@@ -601,7 +601,7 @@ export default function OperatorDashboard() {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Active Micro-Groups</h3>
             <button
-              onClick={() => navigate('/operator/groups')}
+              onClick={() => navigate('/operator/tourists')}
               className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center space-x-0.5"
             >
               <span>Manage</span>

@@ -12,9 +12,22 @@ exports.getAllTourists = async (req, res) => {
             LEFT JOIN groups g ON t.group_id = g.id
             LEFT JOIN tours tr ON t.tour_id = tr.id
             LEFT JOIN tourist_preferences tp ON t.id = tp.tourist_id
-            ORDER BY t.name ASC
+            WHERE t.status != 'DELETED'
+            ORDER BY t.created_at DESC, t.id DESC
         `);
-        res.json({ success: true, tourists });
+
+        // Deduplicate by name (case-insensitive) so the same person is never returned twice
+        const seen = new Set();
+        const unique = [];
+        for (const t of tourists) {
+            const clean = t.name ? t.name.toLowerCase().trim() : '';
+            if (clean && !seen.has(clean)) {
+                seen.add(clean);
+                unique.push(t);
+            }
+        }
+
+        res.json({ success: true, tourists: unique });
     } catch (err) {
         console.error('[TouristController] getAllTourists error:', err);
         res.status(500).json({ success: false, message: err.message });
@@ -98,12 +111,49 @@ exports.createTourist = async (req, res) => {
             }
         }
 
-        const touristId = `trt_${uuidv4().substring(0, 8)}`;
-        await query(
-            `INSERT INTO tourists (id, tour_id, group_id, name, age, gender, preferred_language, walking_preference, activity_preference, interests, accessibility_requirements, emergency_contact_name, emergency_contact_phone, current_latitude, current_longitude, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [touristId, tour_id, assignedGroupId, name, age, gender, preferred_language, walking_preference, activity_preference, interests, accessibility_requirements, emergency_contact_name || 'Emergency Contact', emergency_contact_phone || '+91 98451 00000', 11.4190, 76.7112, 'ACTIVE']
+        // Check if tourist with same name already exists in tour
+        const existing = await query(
+            'SELECT id FROM tourists WHERE LOWER(name) = ?',
+            [name.toLowerCase().trim()]
         );
+
+        let touristId;
+        if (existing && existing.length > 0) {
+            touristId = existing[0].id;
+            await query(
+                `UPDATE tourists SET 
+                    tour_id = ?,
+                    group_id = ?,
+                    name = ?,
+                    age = ?,
+                    gender = ?,
+                    preferred_language = ?,
+                    walking_preference = ?,
+                    activity_preference = ?,
+                    interests = ?,
+                    accessibility_requirements = ?,
+                    emergency_contact_name = ?,
+                    emergency_contact_phone = ?,
+                    status = 'ACTIVE',
+                    updated_at = CURRENT_TIMESTAMP
+                 WHERE id = ?`,
+                [
+                    tour_id, assignedGroupId, name, age, gender,
+                    preferred_language, walking_preference, activity_preference,
+                    interests, accessibility_requirements,
+                    emergency_contact_name || 'Emergency Contact',
+                    emergency_contact_phone || '+91 98451 00000',
+                    touristId
+                ]
+            );
+        } else {
+            touristId = `trt_${uuidv4().substring(0, 8)}`;
+            await query(
+                `INSERT INTO tourists (id, tour_id, group_id, name, age, gender, preferred_language, walking_preference, activity_preference, interests, accessibility_requirements, emergency_contact_name, emergency_contact_phone, current_latitude, current_longitude, status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [touristId, tour_id, assignedGroupId, name, age, gender, preferred_language, walking_preference, activity_preference, interests, accessibility_requirements, emergency_contact_name || 'Emergency Contact', emergency_contact_phone || '+91 98451 00000', 11.4190, 76.7112, 'ACTIVE']
+            );
+        }
 
         // Add preferences
         const prefId = `pref_${uuidv4().substring(0, 8)}`;
@@ -184,19 +234,15 @@ exports.deleteTourist = async (req, res) => {
         const tourId = tRows[0]?.tour_id || 'tour_ooty_nilgiris';
         const touristName = tRows[0]?.name;
 
-        // 1. Delete from group_members
-        await query('DELETE FROM group_members WHERE tourist_id = ?', [id]);
-        // 2. Delete from preferences
-        await query('DELETE FROM tourist_preferences WHERE tourist_id = ?', [id]);
-        // 3. Delete from locations & breadcrumbs
-        await query('DELETE FROM tourist_locations WHERE tourist_id = ?', [id]);
-        // 4. Delete from emergencies
-        await query('DELETE FROM emergencies WHERE tourist_id = ?', [id]);
-        // 5. Delete from broadcast acknowledgments
-        await query('DELETE FROM broadcast_acknowledgments WHERE tourist_id = ?', [id]);
-        // 6. Delete from feedback
-        await query('DELETE FROM tourist_feedback WHERE tourist_id = ?', [id]);
-        // 7. Delete from tourists table
+        // Safe cascade deletions
+        try { await query('DELETE FROM group_members WHERE tourist_id = ?', [id]); } catch (e) {}
+        try { await query('DELETE FROM tourist_preferences WHERE tourist_id = ?', [id]); } catch (e) {}
+        try { await query('DELETE FROM tourist_locations WHERE tourist_id = ?', [id]); } catch (e) {}
+        try { await query('DELETE FROM emergencies WHERE tourist_id = ?', [id]); } catch (e) {}
+        try { await query('DELETE FROM broadcast_acks WHERE tourist_id = ?', [id]); } catch (e) {}
+        try { if (touristName) await query('DELETE FROM tourist_feedback WHERE tourist_name = ?', [touristName]); } catch (e) {}
+        
+        // Delete from tourists table
         await query('DELETE FROM tourists WHERE id = ?', [id]);
 
         // 8. Emit real-time deletion events
