@@ -255,7 +255,10 @@ exports.bookTour = async (req, res) => {
         const assignedGroupName = grpCheck[0]?.name || 'Group Beta';
 
         // 3. Upsert into tourists table
-        const existingTourist = await query('SELECT id FROM tourists WHERE user_id = ? OR id = ?', [user_id, touristId]);
+        const existingTourist = await query(
+            'SELECT id FROM tourists WHERE user_id = ? OR id = ? OR LOWER(name) = ?',
+            [user_id, touristId, tourist_name.toLowerCase()]
+        );
         if (existingTourist && existingTourist.length > 0) {
             touristId = existingTourist[0].id;
             await query(`
@@ -330,14 +333,24 @@ exports.bookTour = async (req, res) => {
                 const bookingPayload = {
                     id: notifId,
                     touristId,
+                    tourist_id: touristId,
                     touristName: tourist_name,
+                    tourist_name: tourist_name,
                     tourId: tour_id,
+                    tour_id: tour_id,
                     packageTitle: package_title,
+                    package_title: package_title,
                     duration,
                     groupName: assignedGroupName,
+                    assigned_group: assignedGroupName,
                     groupId: targetGroupId,
+                    group_id: targetGroupId,
                     walkingPreference: walking_preference,
                     language,
+                    preferences: {
+                        walking_preference,
+                        dietary_pref
+                    },
                     timestamp: new Date().toISOString()
                 };
                 io.emit('booking:new', bookingPayload);
@@ -362,6 +375,14 @@ exports.bookTour = async (req, res) => {
             assignedGroup: {
                 id: targetGroupId,
                 name: assignedGroupName
+            },
+            booking: {
+                booking_id: `BK-${Date.now().toString().slice(-6)}`,
+                tourist_name,
+                package_title,
+                duration,
+                assigned_group: assignedGroupName,
+                places: req.body.booking_details?.places || []
             }
         });
     } catch (err) {

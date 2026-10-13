@@ -86,6 +86,46 @@ export default function TouristDashboard() {
     };
   });
 
+  const syncBookingFromStorage = () => {
+    try {
+      const saved = localStorage.getItem('tourist_active_booking');
+      const storedUser = localStorage.getItem('tourism_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setActiveBooking(parsed);
+        const name = parsed.tourist_name || 'Sonika';
+        const groupName = parsed.assigned_group || 'Group Beta (Heritage Explorers)';
+        const groupId = groupName.includes('Alpha') ? 'grp_alpha' : groupName.includes('Gamma') ? 'grp_gamma' : 'grp_beta';
+        setTouristInfo((prev) => ({
+          ...prev,
+          name,
+          groupName,
+          groupId,
+          walkingPreference: parsed.preferences?.walking_preference || prev.walkingPreference,
+          preferredLanguage: parsed.language || prev.preferredLanguage
+        }));
+      } else if (storedUser) {
+        const u = JSON.parse(storedUser);
+        if (u.name) {
+          setTouristInfo((prev) => ({ ...prev, name: u.name }));
+        }
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncBookingFromStorage();
+    const handleStorageChange = () => syncBookingFromStorage();
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleStorageChange);
+    window.addEventListener('tourist_booking_updated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+      window.removeEventListener('tourist_booking_updated', handleStorageChange);
+    };
+  }, []);
+
   const { lastItineraryEvent, lastBroadcastEvent } = useSocket();
   const navigate = useNavigate();
 
@@ -119,7 +159,7 @@ export default function TouristDashboard() {
 
   useEffect(() => {
     loadData();
-  }, [lastItineraryEvent, lastBroadcastEvent]);
+  }, [lastItineraryEvent, lastBroadcastEvent, touristInfo.groupId]);
 
   const handleAcknowledge = async (broadcastId) => {
     try {
@@ -202,12 +242,16 @@ export default function TouristDashboard() {
       {/* Welcome & Booked Tour Card */}
       <div className="glass-panel p-5 rounded-3xl border border-slate-200 space-y-3 shadow-sm bg-white">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1.5 flex-wrap gap-1">
             <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-black">
               {t('activeTour')}
             </span>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
               {activeBooking?.duration || '3 Days / 4 Nights'}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[9px] font-black flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
+              <span>LIVE BOOKING ACTIVE</span>
             </span>
           </div>
           <span className="text-[10px] text-slate-500 font-semibold">{t('dayOf')}</span>
@@ -221,27 +265,38 @@ export default function TouristDashboard() {
         </div>
 
         {/* Places included in package */}
-        {activeBooking?.places && activeBooking.places.length > 0 && (
-          <div className="pt-2 border-t border-slate-100">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center space-x-1">
-              <MapPin className="w-3 h-3 text-blue-600" />
-              <span>Tour Places Included ({activeBooking.places.length} Locations):</span>
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {activeBooking.places.map((place, idx) => {
-                const placeName = typeof place === 'string' ? place : place.name;
-                return (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200 text-[10px] font-semibold text-slate-700"
-                  >
-                    📍 {placeName}
-                  </span>
-                );
-              })}
+        {(() => {
+          const displayPlaces = (activeBooking?.places && activeBooking.places.length > 0)
+            ? activeBooking.places
+            : [
+                'Doddabetta Peak (2,637m)',
+                'Government Botanical Garden',
+                'Heritage Tea Estate & Factory',
+                'Pykara Waterfalls & Boathouse',
+                'Nilgiri Mountain Steam Railway'
+              ];
+          return (
+            <div className="pt-2 border-t border-slate-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center space-x-1">
+                <MapPin className="w-3 h-3 text-blue-600" />
+                <span>Tour Places Included ({displayPlaces.length} Locations):</span>
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {displayPlaces.map((place, idx) => {
+                  const placeName = typeof place === 'string' ? place : (place.name || place.title || 'Sightseeing Point');
+                  return (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center px-2 py-0.5 rounded-lg bg-blue-50/80 border border-blue-200 text-[10px] font-semibold text-slate-800 shadow-xs"
+                    >
+                      📍 {placeName}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
           <span>

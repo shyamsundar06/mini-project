@@ -129,9 +129,15 @@ export default function OperatorDashboard() {
       ]);
 
       if (analyticsRes.data?.summary) {
+        let clientCount = 0;
+        try {
+          const ct = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
+          clientCount = ct.length;
+        } catch (e) {}
+        const serverTotal = analyticsRes.data.summary.totalTourists || 16;
         setSummary((prev) => ({
           ...prev,
-          totalTourists: analyticsRes.data.summary.totalTourists,
+          totalTourists: Math.max(serverTotal, 16 + clientCount),
           activeGroups: analyticsRes.data.summary.activeGroups,
           activeEmergencies: analyticsRes.data.summary.activeEmergencies,
           estimatedRevenue: analyticsRes.data.summary.totalTourRevenue
@@ -256,11 +262,15 @@ export default function OperatorDashboard() {
                 </span>
               </div>
               <h4 className="font-bold text-sm mt-0.5">
-                <span className="underline decoration-white/40 font-extrabold">{newBookingAlert.tourist_name}</span> has booked{' '}
-                <span className="font-extrabold">"{newBookingAlert.package_title}"</span> ({newBookingAlert.duration})
+                <span className="underline decoration-white/40 font-extrabold">
+                  {newBookingAlert.tourist_name || newBookingAlert.touristName || 'Tourist'}
+                </span> has booked{' '}
+                <span className="font-extrabold">
+                  "{newBookingAlert.package_title || newBookingAlert.packageTitle || 'Nilgiris Heritage Tour'}"
+                </span> ({newBookingAlert.duration || '3 Days / 4 Nights'})
               </h4>
               <p className="text-xs text-white/90">
-                Pace: {newBookingAlert.preferences?.walking_preference || 'Standard'} • Language: {newBookingAlert.language || 'English'} • Auto-assigned to <strong className="text-white font-extrabold">{newBookingAlert.assigned_group || 'Active Group'}</strong>
+                Pace: {newBookingAlert.preferences?.walking_preference || newBookingAlert.walkingPreference || 'Standard'} • Language: {newBookingAlert.language || 'English'} • Auto-assigned to <strong className="text-white font-extrabold">{newBookingAlert.assigned_group || newBookingAlert.groupName || 'Active Group'}</strong>
               </p>
             </div>
           </div>

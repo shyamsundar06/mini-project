@@ -53,6 +53,23 @@ export default function AdaptiveGrouping() {
         deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
       } catch (e) {}
 
+      // Read locally added or booked tourists
+      let clientTourists = [];
+      try {
+        clientTourists = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
+      } catch (e) {}
+
+      // Any tourist actively present in clientTourists or newly booked MUST NOT be blacklisted
+      if (clientTourists.length > 0) {
+        const clientNames = clientTourists.map((ct) => ct.name.toLowerCase());
+        deletedNames = deletedNames.filter((dn) => !clientNames.includes(dn));
+        deletedIds = deletedIds.filter((di) => !clientTourists.some((ct) => ct.id === di));
+      }
+      if (lastBookingEvent?.tourist_name) {
+        const bookedName = lastBookingEvent.tourist_name.toLowerCase();
+        deletedNames = deletedNames.filter((dn) => dn !== bookedName);
+      }
+
       // Clean server groups to remove any deleted tourists
       serverGroups = serverGroups.map((grp) => {
         const filteredMembers = (grp.members || []).filter(
@@ -64,12 +81,6 @@ export default function AdaptiveGrouping() {
           members: filteredMembers
         };
       });
-
-      // Merge locally added or booked tourists so they are guaranteed to reflect in groups
-      let clientTourists = [];
-      try {
-        clientTourists = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
-      } catch (e) {}
 
       clientTourists = clientTourists.filter(
         (ct) => !deletedIds.includes(ct.id) && !deletedNames.includes(ct.name?.toLowerCase())

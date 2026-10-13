@@ -243,13 +243,18 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
 
       const res = await touristApi.bookTour(bookingPayload);
       const bookingData = res.data?.booking || {
-        booking_id: `bkg_${Date.now()}`,
+        booking_id: res.data?.bookingId || `bkg_${Date.now()}`,
         tourist_name: touristName,
         package_title: selectedPackage.title,
         duration: selectedPackage.duration,
-        assigned_group: preferences.walking_preference === 'Fast' ? 'Group Alpha' : preferences.walking_preference === 'Slow' ? 'Group Gamma' : 'Group Beta',
-        places: selectedPackage.places.map((p) => p.name)
+        assigned_group: res.data?.assignedGroup?.name || (preferences.walking_preference === 'Fast' ? 'Group Alpha' : preferences.walking_preference === 'Slow' ? 'Group Gamma' : 'Group Beta'),
+        places: selectedPackage.places
       };
+
+      // Ensure places is populated
+      if (!bookingData.places || bookingData.places.length === 0) {
+        bookingData.places = selectedPackage.places;
+      }
 
       // Save to localStorage for tourist dashboard personalization
       localStorage.setItem('tourist_active_booking', JSON.stringify({
@@ -282,7 +287,7 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
         const targetGroupId = preferences.walking_preference === 'Fast' ? 'grp_alpha' : preferences.walking_preference === 'Slow' ? 'grp_gamma' : 'grp_beta';
         const targetGroupName = targetGroupId === 'grp_alpha' ? 'Alpha - Southern Regional Cohort' : targetGroupId === 'grp_gamma' ? 'Gamma - Regional Cultural Guild' : 'Beta - Bilingual Bridge Cohort';
         const clientTourist = {
-          id: `trt_${touristName.toLowerCase()}`,
+          id: res.data?.touristId || `trt_${touristName.toLowerCase()}`,
           name: touristName,
           age: 26,
           gender: 'Female',
@@ -291,7 +296,7 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
           activity_preference: preferences.activity_preference,
           interests: preferences.interests,
           accessibility_requirements: 'None',
-          emergency_contact_name: 'Emergency Contact',
+          emergency_contact_name: preferences.emergency_contact_name || 'Emergency Contact',
           emergency_contact_phone: preferences.emergency_contact_phone || '+91 98451 00000',
           tour_id: 'tour_ooty_nilgiris',
           group_id: targetGroupId,
@@ -302,8 +307,22 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
         };
         const existing = JSON.parse(localStorage.getItem('tourism_client_added_tourists') || '[]');
         const filtered = existing.filter(t => t.name.toLowerCase() !== touristName.toLowerCase());
-        filtered.push(clientTourist);
+        filtered.unshift(clientTourist);
         localStorage.setItem('tourism_client_added_tourists', JSON.stringify(filtered));
+
+        // CRITICAL: Un-blacklist tourist from any previous test deletion
+        const deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
+        const cleanNames = deletedNames.filter(n => n.toLowerCase() !== touristName.toLowerCase());
+        localStorage.setItem('tourism_deleted_tourist_names', JSON.stringify(cleanNames));
+
+        const deletedIds = JSON.parse(localStorage.getItem('tourism_deleted_tourist_ids') || '[]');
+        const cleanIds = deletedIds.filter(id => !id.toLowerCase().includes(touristName.toLowerCase()));
+        localStorage.setItem('tourism_deleted_tourist_ids', JSON.stringify(cleanIds));
+      } catch (e) {}
+
+      // Notify window listeners
+      try {
+        window.dispatchEvent(new Event('tourist_booking_updated'));
       } catch (e) {}
 
       setBookingResult(bookingData);
@@ -331,9 +350,18 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
         package_title: selectedPackage.title,
         duration: selectedPackage.duration,
         assigned_group: preferences.walking_preference === 'Fast' ? 'Group Alpha (Trekkers)' : preferences.walking_preference === 'Slow' ? 'Group Gamma (Leisure)' : 'Group Beta (Explorers)',
-        places: selectedPackage.places.map((p) => p.name)
+        places: selectedPackage.places
       };
       localStorage.setItem('tourist_active_booking', JSON.stringify(fallbackBooking));
+
+      // Clean deleted lists
+      try {
+        const deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
+        const cleanNames = deletedNames.filter(n => n.toLowerCase() !== touristName.toLowerCase());
+        localStorage.setItem('tourism_deleted_tourist_names', JSON.stringify(cleanNames));
+        window.dispatchEvent(new Event('tourist_booking_updated'));
+      } catch (e) {}
+
       setBookingResult(fallbackBooking);
       setStep(5);
     } finally {
@@ -875,7 +903,12 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
                 <button
                   type="button"
                   onClick={() => {
+                    if (onBookingSuccess) onBookingSuccess(bookingResult);
                     if (onClose) onClose();
+                    try {
+                      window.dispatchEvent(new Event('tourist_booking_updated'));
+                    } catch (e) {}
+                    window.location.reload();
                   }}
                   className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-blue-500/25 flex items-center justify-center space-x-2 transition-all active:scale-[0.98]"
                 >

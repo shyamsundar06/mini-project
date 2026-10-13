@@ -41,11 +41,19 @@ export function SocketProvider({ children }) {
 
       // Real-time booking by tourist
       s.on('booking:new', (data) => {
-        setLastBookingEvent(data);
+        const normalized = {
+          ...data,
+          tourist_name: data.tourist_name || data.touristName || 'Tourist',
+          package_title: data.package_title || data.packageTitle || 'Tour Package',
+          assigned_group: data.assigned_group || data.groupName || 'Tour Group',
+          duration: data.duration || '3 Days / 4 Nights',
+          preferences: data.preferences || { walking_preference: data.walkingPreference || 'Moderate' }
+        };
+        setLastBookingEvent(normalized);
         addNotification({
           id: `notif_${Date.now()}`,
           title: '🎉 New Real-Time Tour Booking!',
-          message: `${data.tourist_name || 'Tourist'} just booked "${data.package_title || 'Tour'}" (${data.duration || 'Package'}) and joined ${data.assigned_group || 'Tour Group'}.`,
+          message: `${normalized.tourist_name} just booked "${normalized.package_title}" (${normalized.duration}) and joined ${normalized.assigned_group}.`,
           type: 'BOOKING',
           time: new Date().toLocaleTimeString()
         });

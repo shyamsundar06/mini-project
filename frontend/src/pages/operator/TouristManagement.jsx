@@ -54,6 +54,26 @@ export default function TouristManagement() {
         deletedNames = JSON.parse(localStorage.getItem('tourism_deleted_tourist_names') || '[]');
       } catch (e) {}
 
+      // Auto-heal: Any active client tourist or booked tourist MUST NOT be blacklisted
+      if (clientTourists.length > 0) {
+        const clientNames = clientTourists.map((ct) => ct.name.toLowerCase());
+        const cleanedDeletedNames = deletedNames.filter((dn) => !clientNames.includes(dn));
+        const cleanedDeletedIds = deletedIds.filter((di) => !clientTourists.some((ct) => ct.id === di));
+        if (cleanedDeletedNames.length !== deletedNames.length || cleanedDeletedIds.length !== deletedIds.length) {
+          deletedNames = cleanedDeletedNames;
+          deletedIds = cleanedDeletedIds;
+          try {
+            localStorage.setItem('tourism_deleted_tourist_names', JSON.stringify(deletedNames));
+            localStorage.setItem('tourism_deleted_tourist_ids', JSON.stringify(deletedIds));
+          } catch (e) {}
+        }
+      }
+
+      if (lastBookingEvent?.tourist_name) {
+        const bookedName = lastBookingEvent.tourist_name.toLowerCase();
+        deletedNames = deletedNames.filter((dn) => dn !== bookedName);
+      }
+
       // Merge clientTourists if not already in serverTourists
       const merged = [...serverTourists];
       clientTourists.forEach((ct) => {

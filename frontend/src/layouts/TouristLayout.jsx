@@ -26,20 +26,30 @@ export default function TouristLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    try {
-      const storedBooking = localStorage.getItem('tourist_active_booking');
-      const storedUser = localStorage.getItem('tourism_user');
-      const isSonikaOrSubika = storedUser && (storedUser.toLowerCase().includes('sonika') || storedUser.toLowerCase().includes('subika'));
+    const syncLayoutBooking = () => {
+      try {
+        const storedBooking = localStorage.getItem('tourist_active_booking');
+        const storedUser = localStorage.getItem('tourism_user');
+        const isSonikaOrSubika = storedUser && (storedUser.toLowerCase().includes('sonika') || storedUser.toLowerCase().includes('subika'));
 
-      if (storedBooking) {
-        setActiveBooking(JSON.parse(storedBooking));
-      }
+        if (storedBooking) {
+          setActiveBooking(JSON.parse(storedBooking));
+        }
 
-      // If user hasn't booked yet or isn't Sonika/Subika, open wizard
-      if (!storedBooking || !isSonikaOrSubika) {
-        setShowBookingWizard(true);
-      }
-    } catch (e) {}
+        // If user hasn't booked yet or isn't Sonika/Subika, open wizard
+        if (!storedBooking || !isSonikaOrSubika) {
+          setShowBookingWizard(true);
+        }
+      } catch (e) {}
+    };
+
+    syncLayoutBooking();
+    window.addEventListener('storage', syncLayoutBooking);
+    window.addEventListener('tourist_booking_updated', syncLayoutBooking);
+    return () => {
+      window.removeEventListener('storage', syncLayoutBooking);
+      window.removeEventListener('tourist_booking_updated', syncLayoutBooking);
+    };
   }, []);
 
   const touristTabs = [
