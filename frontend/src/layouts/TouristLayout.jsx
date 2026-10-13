@@ -10,7 +10,8 @@ import {
   Check,
   Sparkles,
   UserCheck,
-  CalendarCheck
+  CalendarCheck,
+  RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage, LANGUAGES } from '../context/LanguageContext';
@@ -26,30 +27,39 @@ export default function TouristLayout() {
   const [activeBooking, setActiveBooking] = useState(null);
   const navigate = useNavigate();
 
+  const handleRestartLogin = () => {
+    try {
+      localStorage.removeItem('tourist_active_booking');
+      localStorage.removeItem('tourism_user');
+      localStorage.removeItem('tourism_token');
+      setActiveBooking(null);
+      setShowBookingWizard(true);
+      window.dispatchEvent(new Event('tourist_booking_updated'));
+    } catch (e) {}
+  };
+
   useEffect(() => {
     const syncLayoutBooking = () => {
       try {
-        const DATA_VERSION = 'v3_fresh_15_allocation_ai';
+        const DATA_VERSION = 'v5_tourist_login_restart';
         if (localStorage.getItem('tourism_data_version') !== DATA_VERSION) {
           localStorage.setItem('tourism_data_version', DATA_VERSION);
           localStorage.removeItem('tourist_active_booking');
           localStorage.removeItem('tourism_client_added_tourists');
           localStorage.removeItem('tourism_deleted_tourist_names');
           localStorage.removeItem('tourism_deleted_tourist_ids');
+          localStorage.removeItem('tourism_user');
+          localStorage.removeItem('tourism_token');
+          setActiveBooking(null);
+          setShowBookingWizard(true);
+          return;
         }
 
         const storedBooking = localStorage.getItem('tourist_active_booking');
-        const storedUser = localStorage.getItem('tourism_user');
-        const isSonikaOrSubika = storedUser && (storedUser.toLowerCase().includes('sonika') || storedUser.toLowerCase().includes('subika'));
-
         if (storedBooking) {
           setActiveBooking(JSON.parse(storedBooking));
         } else {
           setActiveBooking(null);
-        }
-
-        // If user hasn't booked yet or isn't Sonika/Subika, open wizard
-        if (!storedBooking && !isSonikaOrSubika) {
           setShowBookingWizard(true);
         }
       } catch (e) {}
@@ -182,6 +192,16 @@ export default function TouristLayout() {
           </div>
 
           <div className="flex items-center space-x-1.5">
+            {/* Restart Login Button */}
+            <button
+              onClick={handleRestartLogin}
+              className="px-2 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-[11px] font-bold flex items-center space-x-1 transition-all"
+              title="Restart from Login Page"
+            >
+              <RotateCcw className="w-3 h-3 text-amber-600" />
+              <span>Restart</span>
+            </button>
+
             {/* Active Tourist Profile & Re-Book Button */}
             <button
               onClick={() => setShowBookingWizard(true)}

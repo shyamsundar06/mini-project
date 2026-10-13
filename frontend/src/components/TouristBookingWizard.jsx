@@ -149,27 +149,10 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
     if (isOpen) {
       setBookingResult(null);
       setIsSubmitting(false);
-      const currentStoredUser = localStorage.getItem('tourism_user');
-      if (currentStoredUser) {
-        try {
-          const parsed = JSON.parse(currentStoredUser);
-          if (parsed.email?.includes('sonika') || parsed.username === 'sonika' || parsed.name?.toLowerCase().includes('sonika')) {
-            setAuthenticatedUser(parsed);
-            setUsername('sonika');
-            setStep(2);
-          } else if (parsed.email?.includes('subika') || parsed.username === 'subika' || parsed.name?.toLowerCase().includes('subika')) {
-            setAuthenticatedUser(parsed);
-            setUsername('subika');
-            setStep(2);
-          } else {
-            setStep(1);
-          }
-        } catch (e) {
-          setStep(1);
-        }
-      } else {
-        setStep(1);
-      }
+      setStep(1); // Always start from Step 1: Login
+      setUsername('');
+      setPassword('');
+      setAuthenticatedUser(null);
     }
   }, [isOpen]);
 
@@ -519,6 +502,31 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
                   )}
                 </button>
               </form>
+
+              {/* Instant 1-Click Fast Login for Authorized Tourists */}
+              <div className="pt-2 border-t border-slate-100">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">
+                  Or 1-Click Instant Tourist Login:
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleLogin('sonika', '1234')}
+                    className="p-2.5 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-xs"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Sonika (1234)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLogin('subika', '1234')}
+                    className="p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center space-x-1.5 transition-all shadow-xs"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Subika (1234)</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
