@@ -385,7 +385,9 @@ async function populateSeedData() {
         ['usr_tourist_13', 'Sneha Menon', 'sneha.m@gmail.com', passwordHash, 'tourist', '+91 98452 33445'],
         ['usr_tourist_14', 'Venkatesh Rao', 'venky.rao@gmail.com', passwordHash, 'tourist', '+91 98452 44556'],
         ['usr_tourist_15', 'Divya Balaji', 'divya.b@gmail.com', passwordHash, 'tourist', '+91 98452 55667'],
-        ['usr_tourist_16', 'Amitabh Sen', 'amitabh.s@gmail.com', passwordHash, 'tourist', '+91 98452 66778']
+        ['usr_tourist_16', 'Amitabh Sen', 'amitabh.s@gmail.com', passwordHash, 'tourist', '+91 98452 66778'],
+        ['usr_sonika', 'Sonika', 'sonika@tourism.com', await bcrypt.hash('1234', 10), 'tourist', '+91 98451 11111'],
+        ['usr_subika', 'Subika', 'subika@tourism.com', await bcrypt.hash('1234', 10), 'tourist', '+91 98451 22222']
     ];
     for (const u of users) {
         await runSqlite('INSERT OR IGNORE INTO users (id, name, email, password_hash, role, phone) VALUES (?, ?, ?, ?, ?, ?)', u);

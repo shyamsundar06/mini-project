@@ -37,6 +37,8 @@
   border-radius: 0.75rem;
   background-color: #f8fafc !important;
   font-family: inherit;
+  isolation: isolate !important;
+  z-index: 0 !important;
 }
 
 .leaflet-popup-content-wrapper {

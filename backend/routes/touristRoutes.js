@@ -5,6 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 
 router.get('/', touristController.getAllTourists);
 router.get('/:id', touristController.getTouristById);
+router.post('/book', touristController.bookTour);
 router.post('/', authenticateToken, touristController.createTourist);
 router.put('/:id', authenticateToken, touristController.updateTourist);
 router.delete('/:id', authenticateToken, touristController.deleteTourist);

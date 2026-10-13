@@ -2,9 +2,97 @@ const { v4: uuidv4 } = require('uuid');
 const { query } = require('../config/db');
 const groupAgent = require('../agents/GroupAgent');
 
+/**
+ * Persist clustered groups and member associations to the database
+ */
+async function persistClusters(tour_id, clusters) {
+    if (!clusters || clusters.length === 0) return;
+
+    // Remove old group memberships for groups of this tour
+    const existingGroups = await query('SELECT id FROM groups WHERE tour_id = ?', [tour_id]);
+    for (const eg of existingGroups) {
+        await query('DELETE FROM group_members WHERE group_id = ?', [eg.id]);
+    }
+
+    // Upsert each group and insert member associations
+    for (const cluster of clusters) {
+        const grpId = cluster.id || `grp_${uuidv4().substring(0, 8)}`;
+
+        const existing = await query('SELECT id FROM groups WHERE id = ?', [grpId]);
+        if (existing && existing.length > 0) {
+            await query(`
+                UPDATE groups SET 
+                    name = ?, 
+                    leader_name = ?, 
+                    walking_preference = ?, 
+                    avg_age = ?, 
+                    compatibility_score = ?, 
+                    color_hex = ?,
+                    common_interests = ?
+                WHERE id = ?
+            `, [
+                cluster.name,
+                cluster.leader_name || 'Assigned Guide',
+                cluster.walking_preference || 'Moderate',
+                cluster.avg_age || 30,
+                cluster.compatibility_score || 90,
+                cluster.color_hex || '#3B82F6',
+                cluster.common_interests || 'General',
+                grpId
+            ]);
+        } else {
+            await query(`
+                INSERT INTO groups (id, tour_id, name, leader_name, leader_phone, color_hex, walking_preference, avg_age, common_interests, compatibility_score, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                grpId,
+                tour_id,
+                cluster.name,
+                cluster.leader_name || 'Assigned Guide',
+                cluster.leader_phone || '+91 98451 00000',
+                cluster.color_hex || '#3B82F6',
+                cluster.walking_preference || 'Moderate',
+                cluster.avg_age || 30,
+                cluster.common_interests || 'General',
+                cluster.compatibility_score || 90,
+                'ACTIVE'
+            ]);
+        }
+
+        // Insert every member and update tourists.group_id
+        for (const member of cluster.members || []) {
+            const gmId = `gm_${uuidv4().substring(0, 8)}`;
+            await query(
+                'INSERT INTO group_members (id, group_id, tourist_id, compatibility_score) VALUES (?, ?, ?, ?)',
+                [gmId, grpId, member.id, member.individualScore || cluster.compatibility_score || 90]
+            );
+
+            await query(
+                'UPDATE tourists SET group_id = ?, tour_id = ? WHERE id = ?',
+                [grpId, tour_id, member.id]
+            );
+        }
+    }
+}
+
 exports.getAllGroups = async (req, res) => {
     try {
         const { tour_id = 'tour_ooty_nilgiris' } = req.query;
+
+        // Auto-heal check: Find any tourists in this tour who are not assigned to group_members
+        const unassignedTourists = await query(`
+            SELECT id FROM tourists 
+            WHERE (tour_id = ? OR tour_id IS NULL OR tour_id = '') 
+              AND id NOT IN (SELECT tourist_id FROM group_members)
+        `, [tour_id]);
+
+        if (unassignedTourists && unassignedTourists.length > 0) {
+            console.log(`[GroupController] Auto-healing ${unassignedTourists.length} unassigned tourists into groups...`);
+            const allTourists = await query('SELECT * FROM tourists WHERE tour_id = ? OR tour_id IS NULL OR tour_id = ""', [tour_id]);
+            const clusterResult = groupAgent.clusterTourists(allTourists);
+            await persistClusters(tour_id, clusterResult.groups);
+        }
+
         const groups = await query('SELECT * FROM groups WHERE tour_id = ? ORDER BY name ASC', [tour_id]);
 
         const enriched = await Promise.all(groups.map(async (grp) => {
@@ -38,14 +126,26 @@ exports.getStrategies = async (req, res) => {
 };
 
 /**
- * Run AI Grouping Engine without applying immediately
+ * Run AI Grouping Engine and immediately synchronize to database
  */
 exports.generateAIGroups = async (req, res) => {
     try {
         const { tour_id = 'tour_ooty_nilgiris', strategy_id, iteration } = req.body;
-        const tourists = await query('SELECT * FROM tourists WHERE tour_id = ? OR tour_id IS NULL', [tour_id]);
+        const tourists = await query('SELECT * FROM tourists WHERE tour_id = ? OR tour_id IS NULL OR tour_id = ""', [tour_id]);
 
         const result = groupAgent.clusterTourists(tourists, strategy_id, iteration);
+
+        // Immediately persist so the new tourist is NEVER lost when leaving the tab
+        await persistClusters(tour_id, result.groups);
+
+        // Broadcast real-time socket event if IO available
+        try {
+            if (req.app && typeof req.app.get === 'function' && req.app.get('io')) {
+                req.app.get('io').emit('group:update', { tour_id, timestamp: new Date().toISOString() });
+            }
+        } catch (ioErr) {
+            console.warn('[GroupController] Socket emit notice:', ioErr.message);
+        }
 
         res.json({
             success: true,
@@ -56,7 +156,7 @@ exports.generateAIGroups = async (req, res) => {
             strategyBadge: result.strategyBadge,
             strategyDescription: result.strategyDescription,
             totalTourists: tourists.length,
-            message: `Adaptive AI clustering completed using ${result.strategyName}. Ready for operator approval.`
+            message: `Adaptive AI clustering completed using ${result.strategyName} and saved.`
         });
     } catch (err) {
         console.error('[GroupController] generateAIGroups error:', err);
@@ -73,49 +173,20 @@ exports.approveAIGroups = async (req, res) => {
 
         let clusters = groups;
         if (!clusters || clusters.length === 0) {
-            const tourists = await query('SELECT * FROM tourists WHERE tour_id = ?', [tour_id]);
+            const tourists = await query('SELECT * FROM tourists WHERE tour_id = ? OR tour_id IS NULL OR tour_id = ""', [tour_id]);
             const result = groupAgent.clusterTourists(tourists);
             clusters = result.groups;
         }
 
-        // Clear existing group members for the tour
-        const existingGroups = await query('SELECT id FROM groups WHERE tour_id = ?', [tour_id]);
-        for (const eg of existingGroups) {
-            await query('DELETE FROM group_members WHERE group_id = ?', [eg.id]);
-        }
-
-        // Upsert groups and insert group_members
-        for (const cluster of clusters) {
-            const grpId = cluster.id || `grp_${uuidv4().substring(0, 8)}`;
-            await query(`
-                INSERT INTO groups (id, tour_id, name, leader_name, leader_phone, color_hex, walking_preference, avg_age, common_interests, compatibility_score, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET 
-                    name=excluded.name,
-                    leader_name=excluded.leader_name,
-                    walking_preference=excluded.walking_preference,
-                    avg_age=excluded.avg_age,
-                    compatibility_score=excluded.compatibility_score
-            `, [
-                grpId, tour_id, cluster.name, cluster.leader_name || 'Assigned Guide',
-                cluster.leader_phone || '+91 98451 00000', cluster.color_hex || '#3B82F6',
-                cluster.walking_preference || 'Moderate', cluster.avg_age || 30,
-                cluster.common_interests || 'General', cluster.compatibility_score || 90, 'ACTIVE'
-            ]);
-
-            // Assign tourists to this group
-            for (const member of cluster.members || []) {
-                const gmId = `gm_${uuidv4().substring(0, 8)}`;
-                await query('INSERT OR REPLACE INTO group_members (id, group_id, tourist_id, compatibility_score) VALUES (?, ?, ?, ?)',
-                    [gmId, grpId, member.id, member.individualScore || cluster.compatibility_score || 90]);
-
-                await query('UPDATE tourists SET group_id = ? WHERE id = ?', [grpId, member.id]);
-            }
-        }
+        await persistClusters(tour_id, clusters);
 
         // Broadcast real-time socket event if IO available
-        if (req.app.get('io')) {
-            req.app.get('io').emit('group:update', { tour_id, timestamp: new Date().toISOString() });
+        try {
+            if (req.app && typeof req.app.get === 'function' && req.app.get('io')) {
+                req.app.get('io').emit('group:update', { tour_id, timestamp: new Date().toISOString() });
+            }
+        } catch (ioErr) {
+            console.warn('[GroupController] Socket emit notice:', ioErr.message);
         }
 
         res.json({
@@ -148,8 +219,12 @@ exports.moveTourist = async (req, res) => {
 
         await query('UPDATE tourists SET group_id = ? WHERE id = ?', [target_group_id, tourist_id]);
 
-        if (req.app.get('io')) {
-            req.app.get('io').emit('group:update', { tourist_id, target_group_id });
+        try {
+            if (req.app && typeof req.app.get === 'function' && req.app.get('io')) {
+                req.app.get('io').emit('group:update', { tourist_id, target_group_id });
+            }
+        } catch (ioErr) {
+            // Ignore socket warning
         }
 
         res.json({ success: true, message: 'Tourist successfully moved.' });

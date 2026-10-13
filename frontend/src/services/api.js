@@ -54,6 +54,7 @@ export const touristApi = {
   create: (data) => api.post('/tourists', data),
   update: (id, data) => api.put(`/tourists/${id}`, data),
   delete: (id) => api.delete(`/tourists/${id}`),
+  bookTour: (data) => api.post('/tourists/book', data),
 };
 
 // Group APIs

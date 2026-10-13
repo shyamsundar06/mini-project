@@ -13,6 +13,7 @@ export function SocketProvider({ children }) {
   const [lastItineraryEvent, setLastItineraryEvent] = useState(null);
   const [lastGroupEvent, setLastGroupEvent] = useState(null);
   const [lastBroadcastEvent, setLastBroadcastEvent] = useState(null);
+  const [lastBookingEvent, setLastBookingEvent] = useState(null);
 
   useEffect(() => {
     let s = null;
@@ -36,6 +37,22 @@ export function SocketProvider({ children }) {
 
       s.on('connect_error', () => {
         setConnected(false);
+      });
+
+      // Real-time booking by tourist
+      s.on('booking:new', (data) => {
+        setLastBookingEvent(data);
+        addNotification({
+          id: `notif_${Date.now()}`,
+          title: '🎉 New Real-Time Tour Booking!',
+          message: `${data.tourist_name || 'Tourist'} just booked "${data.package_title || 'Tour'}" (${data.duration || 'Package'}) and joined ${data.assigned_group || 'Tour Group'}.`,
+          type: 'BOOKING',
+          time: new Date().toLocaleTimeString()
+        });
+      });
+
+      s.on('tourist:new', (data) => {
+        setLastBookingEvent(data);
       });
 
       // Real-time event listeners
@@ -143,7 +160,8 @@ export function SocketProvider({ children }) {
         lastAIEvent,
         lastItineraryEvent,
         lastGroupEvent,
-        lastBroadcastEvent
+        lastBroadcastEvent,
+        lastBookingEvent
       }}
     >
       {children}

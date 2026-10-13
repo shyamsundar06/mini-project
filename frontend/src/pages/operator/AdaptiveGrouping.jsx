@@ -89,6 +89,12 @@ export default function AdaptiveGrouping() {
           badge: res.data.strategyBadge,
           description: res.data.strategyDescription
         });
+        await fetchGroups();
+        try {
+          confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        } catch (cErr) {
+          // ignore
+        }
       }
     } catch (err) {
       alert(err.message);

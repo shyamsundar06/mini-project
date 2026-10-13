@@ -43,14 +43,47 @@ export default function TouristDashboard() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [weather, setWeather] = useState(null);
 
-  const [touristInfo, setTouristInfo] = useState({
-    name: 'Rahul Kumar',
-    groupName: 'Group Alpha (Nature Trekkers)',
-    groupId: 'grp_alpha',
-    leaderName: 'Rahul Kumar',
-    leaderPhone: '+91 98451 12345',
-    walkingPreference: 'Fast',
-    preferredLanguage: 'Hindi'
+  const [activeBooking, setActiveBooking] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tourist_active_booking');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [touristInfo, setTouristInfo] = useState(() => {
+    let name = 'Sonika';
+    let groupName = 'Group Beta (Heritage Explorers)';
+    let groupId = 'grp_beta';
+    let walkingPreference = 'Moderate';
+    let preferredLanguage = 'English';
+
+    try {
+      const storedBooking = localStorage.getItem('tourist_active_booking');
+      const storedUser = localStorage.getItem('tourism_user');
+      if (storedBooking) {
+        const b = JSON.parse(storedBooking);
+        name = b.tourist_name || name;
+        groupName = b.assigned_group || groupName;
+        groupId = groupName.includes('Alpha') ? 'grp_alpha' : groupName.includes('Gamma') ? 'grp_gamma' : 'grp_beta';
+        walkingPreference = b.preferences?.walking_preference || walkingPreference;
+        preferredLanguage = b.language || preferredLanguage;
+      } else if (storedUser) {
+        const u = JSON.parse(storedUser);
+        name = u.name || name;
+      }
+    } catch (e) {}
+
+    return {
+      name,
+      groupName,
+      groupId,
+      leaderName: 'Vikram Anand',
+      leaderPhone: '+91 98765 43210',
+      walkingPreference,
+      preferredLanguage
+    };
   });
 
   const { lastItineraryEvent, lastBroadcastEvent } = useSocket();
@@ -166,28 +199,57 @@ export default function TouristDashboard() {
           </div>
         )}
 
-      {/* Welcome & Tour Card */}
+      {/* Welcome & Booked Tour Card */}
       <div className="glass-panel p-5 rounded-3xl border border-slate-200 space-y-3 shadow-sm bg-white">
         <div className="flex items-center justify-between">
-          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
-            {t('activeTour')}
-          </span>
+          <div className="flex items-center space-x-1.5">
+            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-black">
+              {t('activeTour')}
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
+              {activeBooking?.duration || '3 Days / 4 Nights'}
+            </span>
+          </div>
           <span className="text-[10px] text-slate-500 font-semibold">{t('dayOf')}</span>
         </div>
 
         <div>
-          <h2 className="text-lg font-bold text-slate-900 leading-tight">
-            {t('tourTitle')}
+          <h2 className="text-lg font-black text-slate-900 leading-tight">
+            {activeBooking?.package_title || t('tourTitle')}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">{t('tourDestination')}</p>
         </div>
 
+        {/* Places included in package */}
+        {activeBooking?.places && activeBooking.places.length > 0 && (
+          <div className="pt-2 border-t border-slate-100">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center space-x-1">
+              <MapPin className="w-3 h-3 text-blue-600" />
+              <span>Tour Places Included ({activeBooking.places.length} Locations):</span>
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {activeBooking.places.map((place, idx) => {
+                const placeName = typeof place === 'string' ? place : place.name;
+                return (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200 text-[10px] font-semibold text-slate-700"
+                  >
+                    📍 {placeName}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
           <span>
-            {t('welcome')} <strong>{user?.name || 'Rahul Kumar'}</strong>
+            {t('welcome')} <strong className="text-slate-900 font-extrabold">{touristInfo.name}</strong>
           </span>
-          <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            {t('checkedIn')}
+          <span className="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200 flex items-center space-x-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+            <span>{touristInfo.groupName}</span>
           </span>
         </div>
       </div>

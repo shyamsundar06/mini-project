@@ -19,7 +19,8 @@ import {
   Play,
   Pause,
   RefreshCw,
-  Maximize2
+  Maximize2,
+  X
 } from 'lucide-react';
 import {
   tourApi,
@@ -111,7 +112,9 @@ export default function OperatorDashboard() {
   const [isSimulatingGps, setIsSimulatingGps] = useState(false);
   const simTimerRef = useRef(null);
 
-  const { activeEmergency, lastAIEvent, lastItineraryEvent, lastLocationEvent, connected } = useSocket();
+  const [newBookingAlert, setNewBookingAlert] = useState(null);
+
+  const { activeEmergency, lastAIEvent, lastItineraryEvent, lastLocationEvent, lastBookingEvent, connected } = useSocket();
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -158,8 +161,16 @@ export default function OperatorDashboard() {
   };
 
   useEffect(() => {
+    if (lastBookingEvent) {
+      setNewBookingAlert(lastBookingEvent);
+      // Auto-refresh data and bump count
+      fetchData();
+    }
+  }, [lastBookingEvent]);
+
+  useEffect(() => {
     fetchData();
-  }, [activeEmergency, lastAIEvent, lastItineraryEvent, lastLocationEvent]);
+  }, [activeEmergency, lastAIEvent, lastItineraryEvent, lastLocationEvent, lastBookingEvent]);
 
   // GPS Simulation in Dashboard
   useEffect(() => {
@@ -227,6 +238,41 @@ export default function OperatorDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Real-Time Tourist Booking Alert Banner */}
+      {newBookingAlert && (
+        <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-white shadow-xl shadow-emerald-500/10 flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-lg shadow-inner">
+              🎉
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
+                  Real-Time Booking Confirmed
+                </span>
+                <span className="text-[11px] text-white/80">
+                  Just now ({new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                </span>
+              </div>
+              <h4 className="font-bold text-sm mt-0.5">
+                <span className="underline decoration-white/40 font-extrabold">{newBookingAlert.tourist_name}</span> has booked{' '}
+                <span className="font-extrabold">"{newBookingAlert.package_title}"</span> ({newBookingAlert.duration})
+              </h4>
+              <p className="text-xs text-white/90">
+                Pace: {newBookingAlert.preferences?.walking_preference || 'Standard'} • Language: {newBookingAlert.language || 'English'} • Auto-assigned to <strong className="text-white font-extrabold">{newBookingAlert.assigned_group || 'Active Group'}</strong>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setNewBookingAlert(null)}
+            className="p-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all ml-4"
+            title="Dismiss notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* KPI Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -374,7 +420,7 @@ export default function OperatorDashboard() {
         </div>
 
         {/* Embedded Live Leaflet Map */}
-        <div className="h-72 w-full rounded-2xl overflow-hidden border border-slate-200 relative shadow-inner">
+        <div className="h-72 w-full rounded-2xl overflow-hidden border border-slate-200 relative shadow-inner isolate z-0">
           <MapContainer
             center={[11.4190, 76.7112]}
             zoom={15}
@@ -430,7 +476,7 @@ export default function OperatorDashboard() {
           </MapContainer>
 
           {/* Quick HUD badge */}
-          <div className="absolute bottom-3 left-3 z-[1000] bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 shadow-md flex items-center space-x-2">
+          <div className="absolute bottom-3 left-3 z-10 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 shadow-md flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>16 Tourists Synced on Live Map</span>
           </div>

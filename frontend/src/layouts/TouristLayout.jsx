@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   Compass,
@@ -9,16 +9,38 @@ import {
   ArrowRightLeft,
   Globe,
   Check,
-  Sparkles
+  Sparkles,
+  UserCheck,
+  CalendarCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage, LANGUAGES } from '../context/LanguageContext';
+import TouristBookingWizard from '../components/TouristBookingWizard';
 
 export default function TouristLayout() {
   const { user, switchRoleDemo } = useAuth();
   const { lang, setLang, t, hasChosenLang, currentLanguageObj } = useLanguage();
-  const [showLangModal, setShowLangModal] = useState(!hasChosenLang);
+  const [showLangModal, setShowLangModal] = useState(false);
+  const [showBookingWizard, setShowBookingWizard] = useState(false);
+  const [activeBooking, setActiveBooking] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    try {
+      const storedBooking = localStorage.getItem('tourist_active_booking');
+      const storedUser = localStorage.getItem('tourism_user');
+      const isSonikaOrSubika = storedUser && (storedUser.toLowerCase().includes('sonika') || storedUser.toLowerCase().includes('subika'));
+
+      if (storedBooking) {
+        setActiveBooking(JSON.parse(storedBooking));
+      }
+
+      // If user hasn't booked yet or isn't Sonika/Subika, open wizard
+      if (!storedBooking || !isSonikaOrSubika) {
+        setShowBookingWizard(true);
+      }
+    } catch (e) {}
+  }, []);
 
   const touristTabs = [
     { to: '/tourist', icon: Home, label: t('tabHome'), end: true },
@@ -82,8 +104,20 @@ export default function TouristLayout() {
         </div>
       )}
 
+      {/* Tourist Booking & Onboarding Wizard */}
+      <TouristBookingWizard
+        isOpen={showBookingWizard}
+        onClose={() => setShowBookingWizard(false)}
+        onBookingSuccess={(booking) => {
+          setActiveBooking(booking);
+          setShowBookingWizard(false);
+          // Refresh page or trigger dashboard update
+          window.location.reload();
+        }}
+      />
+
       {/* Tourist App Top Bar */}
-      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-40 shadow-xs">
+      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 p-3.5 sticky top-0 z-40 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20">
@@ -91,11 +125,23 @@ export default function TouristLayout() {
             </div>
             <div>
               <h1 className="font-bold text-sm leading-tight text-slate-900">{t('appTitle')}</h1>
-              <p className="text-[11px] text-blue-600 font-semibold">{t('tourSubtitle')}</p>
+              <div className="flex items-center space-x-1">
+                <span className="text-[11px] text-blue-600 font-semibold">{t('tourSubtitle')}</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
+            {/* Active Tourist Profile & Re-Book Button */}
+            <button
+              onClick={() => setShowBookingWizard(true)}
+              className="px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-[11px] font-extrabold flex items-center space-x-1 transition-all"
+              title="Change Tourist / Book Package"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+              <span>{activeBooking?.tourist_name || user?.name || 'Tourist'}</span>
+            </button>
+
             {/* Language Switcher Pill */}
             <button
               onClick={() => setShowLangModal(true)}
@@ -105,12 +151,6 @@ export default function TouristLayout() {
               <Globe className="w-3.5 h-3.5 text-blue-600" />
               <span className="text-[11px]">{currentLanguageObj.native}</span>
             </button>
-
-            {/* Live Status */}
-            <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-              <span>{t('gpsLive')}</span>
-            </span>
 
             {/* Switch to Operator */}
             <button
