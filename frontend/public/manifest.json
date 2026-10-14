@@ -1,6 +1,6 @@
 {
-  "short_name": "IntelliTour",
-  "name": "Intelligent Tourism Management Platform",
+  "short_name": "TrailSync",
+  "name": "TrailSync - Intelligent Tourism Management Platform",
   "description": "Multi-agent intelligent tourism management platform with live GPS, voice assistant, and SOS emergency coordination.",
   "icons": [
     {

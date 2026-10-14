@@ -60,7 +60,7 @@ app.use('/api/weather', weatherRoutes);
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',
-        service: 'Intelligent Tourism Management API',
+        service: 'TrailSync Tourism Management API',
         timestamp: new Date().toISOString()
     });
 });

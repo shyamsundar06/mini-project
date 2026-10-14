@@ -53,7 +53,7 @@ export default function Login() {
             <Compass className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            IntelliTour Platform
+            TrailSync Platform
           </h1>
           <p className="text-xs text-slate-500 font-medium">
             AI Multi-Agent Intelligent Tourism Management Platform

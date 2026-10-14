@@ -55,7 +55,7 @@ class ErrorBoundary extends Component {
             <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center mx-auto text-xl font-bold">
               🌍
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Intelligent Tourism Platform</h2>
+            <h2 className="text-xl font-bold text-slate-900">TrailSync Platform</h2>
             <p className="text-xs text-slate-600">
               {this.state.error?.message || 'Something interrupted the session. Reloading application...'}
             </p>

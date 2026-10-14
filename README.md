@@ -1,6 +1,14 @@
-# 🌍 Intelligent Tourism Management Platform
+# 🌍 TrailSync - Intelligent Tourism Management Platform
 
 A production-grade, full-stack intelligent tourism management platform designed for **Tour Operators** and **Tourists**. The platform features **Multi-Agent AI Coordination**, **Adaptive Micro-Grouping**, **Real-time GPS Tracking on Live Maps**, **Dynamic Weather-Aware Itinerary Replanning**, **Multilingual Voice Assistance (6 Indian Languages)**, **Emergency SOS Coordination & Triage**, and **Tour & Emergency Reserve Cost Estimators**.
+
+---
+
+## 🚀 Live Deployed Platform
+- 🌐 **Live Application**: [https://intelligent-tourism-platform.vercel.app](https://intelligent-tourism-platform.vercel.app)
+- 🧳 **Tourist Mobile Experience**: [https://intelligent-tourism-platform.vercel.app/tourist](https://intelligent-tourism-platform.vercel.app/tourist)
+- 🖥️ **Operator Command Center**: [https://intelligent-tourism-platform.vercel.app/](https://intelligent-tourism-platform.vercel.app/)
+- 🔑 **Instant Demo Login**: [https://intelligent-tourism-platform.vercel.app/login](https://intelligent-tourism-platform.vercel.app/login) *(Features 1-click fast login presets for both Operator and Tourists)*
 
 ---
 

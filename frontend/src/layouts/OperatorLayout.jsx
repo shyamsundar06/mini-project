@@ -84,7 +84,7 @@ export default function OperatorLayout() {
               </div>
               <div>
                 <h1 className="font-bold text-base leading-tight bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
-                  IntelliTour
+                  TrailSync
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">Operator Platform</p>
               </div>

@@ -14,7 +14,7 @@ export const LANGUAGES = [
 export const TRANSLATIONS = {
   en: {
     // Header & Nav
-    appTitle: 'IntelliTour Guide',
+    appTitle: 'TrailSync',
     tourSubtitle: 'Nilgiris Discovery Tour',
     gpsLive: 'GPS Live',
     switchToOperator: 'Switch to Operator Dashboard',
@@ -96,7 +96,7 @@ export const TRANSLATIONS = {
 
   ta: {
     // Header & Nav
-    appTitle: 'இன்டெல்லி டூர் வழிகாட்டி',
+    appTitle: 'ட்ரைல்சின்க் (TrailSync)',
     tourSubtitle: 'நீலகிரி பாரம்பரிய சுற்றுலா',
     gpsLive: 'நேரலை GPS',
     switchToOperator: 'நிர்வாகி தளத்திற்கு மாறவும்',
@@ -178,7 +178,7 @@ export const TRANSLATIONS = {
 
   hi: {
     // Header & Nav
-    appTitle: 'इंटेलिटूर गाइड',
+    appTitle: 'ट्रेलसिंक (TrailSync)',
     tourSubtitle: 'नीलगिरि हेरिटेज टूर',
     gpsLive: 'लाइव जीपीएस',
     switchToOperator: 'ऑपरेटर डैशबोर्ड पर जाएं',
@@ -260,7 +260,7 @@ export const TRANSLATIONS = {
 
   kn: {
     // Header & Nav
-    appTitle: 'ಇಂಟೆಲಿಟೂರ್ ಗೈಡ್',
+    appTitle: 'ಟ್ರೈಲ್‌ಸಿಂಕ್ (TrailSync)',
     tourSubtitle: 'ನೀಲಗಿರಿ ಹೆರಿಟೇಜ್ ಪ್ರವಾಸ',
     gpsLive: 'ಲೈವ್ ಜಿಪಿಎಸ್',
     switchToOperator: 'ಆಪರೇಟರ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಬದಲಾಯಿಸಿ',
@@ -340,7 +340,7 @@ export const TRANSLATIONS = {
 
   te: {
     // Header & Nav
-    appTitle: 'ఇంటెలిటూర్ గైడ్',
+    appTitle: 'ట్రైల్‌సింక్ (TrailSync)',
     tourSubtitle: 'నీలగిరి హెరిటేజ్ పర్యటన',
     gpsLive: 'లైవ్ జీపీఎస్',
     switchToOperator: 'ఆపరేటర్ డ్యాష్‌బోర్డ్‌కు మారండి',
@@ -420,7 +420,7 @@ export const TRANSLATIONS = {
 
   ml: {
     // Header & Nav
-    appTitle: 'ഇന്റലിടൂർ ഗൈഡ്',
+    appTitle: 'ട്രെയിൽസിങ്ക് (TrailSync)',
     tourSubtitle: 'നീലഗിരി പൈതൃക പര്യടനം',
     gpsLive: 'ലൈവ് ജിപിഎസ്',
     switchToOperator: 'ഓപ്പറേറ്റർ ഡാഷ്‌ബോർഡിലേക്ക് മാറുക',

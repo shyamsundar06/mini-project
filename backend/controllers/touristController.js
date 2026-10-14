@@ -387,7 +387,7 @@ exports.bookTour = async (req, res) => {
         // 6. Record notification for Operator Dashboard
         const notifId = `notif_${uuidv4().substring(0, 8)}`;
         const notifTitle = `🎟️ New Booking: ${tourist_name}`;
-        const notifMsg = `${tourist_name} booked package "${package_title}" (${duration}). Automatically assigned to ${assignedGroupName}.`;
+        const notifMsg = `${tourist_name} booked package "${package_title}" (${duration}) [${booking_details?.total_amount || ''} incl. ₹2,000 refundable Emergency Medical Services deposit]. Automatically assigned to ${assignedGroupName}.`;
         await query(`
             INSERT INTO notifications (id, user_id, title, message, type, is_read, created_at)
             VALUES (?, NULL, ?, ?, 'BOOKING', 0, CURRENT_TIMESTAMP)
@@ -414,6 +414,10 @@ exports.bookTour = async (req, res) => {
                     group_id: targetGroupId,
                     walkingPreference: walking_preference,
                     language,
+                    base_price: booking_details?.base_price || '',
+                    emergency_medical_deposit: booking_details?.emergency_medical_deposit || '₹2,000',
+                    total_amount: booking_details?.total_amount || '',
+                    medical_refund_note: 'Refundable after trip if not used',
                     preferences: {
                         walking_preference,
                         dietary_pref
@@ -449,7 +453,11 @@ exports.bookTour = async (req, res) => {
                 package_title,
                 duration,
                 assigned_group: assignedGroupName,
-                places: req.body.booking_details?.places || []
+                places: req.body.booking_details?.places || [],
+                base_price: booking_details?.base_price || '',
+                emergency_medical_deposit: booking_details?.emergency_medical_deposit || '₹2,000',
+                total_amount: booking_details?.total_amount || '',
+                medical_refund_note: 'Refundable after trip if not used'
             }
         });
     } catch (err) {

@@ -215,7 +215,7 @@ export default function OperatorDashboard() {
             <span className="text-slate-500 text-xs">• Ooty Botanical & Heritage Tour</span>
           </div>
           <h2 className="text-2xl font-extrabold mt-1 text-slate-900 tracking-tight">
-            Intelligent Tour Command Center
+            TrailSync Tour Command Center
           </h2>
           <p className="text-slate-600 text-xs mt-1">
             Real-time multi-agent telemetry, live GPS synchronization, and adaptive group management.

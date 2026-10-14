@@ -54,7 +54,8 @@ export const TOUR_PACKAGES = [
       'All Sightseeing in AC Traveler Transit',
       'Daily Mountain Breakfast & Dinner',
       'Guided Eco-Walks & Entry Tickets',
-      '24/7 AI Guide & Live Tour Coordinator'
+      '24/7 AI Guide & Live Tour Coordinator',
+      '🛡️ Emergency Medical Cover (+₹2,000 Refundable)'
     ]
   },
   {
@@ -81,7 +82,8 @@ export const TOUR_PACKAGES = [
       'Forest Reserve Permits & Local Safaris',
       'Campfire & Organic Dark Chocolate Tasting',
       'Private Chauffeur Mountain Transit',
-      'Real-Time Safety & GPS Tracking'
+      'Real-Time Safety & GPS Tracking',
+      '🛡️ Emergency Medical Cover (+₹2,000 Refundable)'
     ]
   },
   {
@@ -106,7 +108,8 @@ export const TOUR_PACKAGES = [
       'Colonial Heritage Bungalow (2 Nights)',
       'Artisan Tea Tasting & Workshop',
       'Toy Train Ticket from Ooty to Coonoor',
-      'All Sightseeing & Guide Assistance'
+      'All Sightseeing & Guide Assistance',
+      '🛡️ Emergency Medical Cover (+₹2,000 Refundable)'
     ]
   }
 ];
@@ -219,6 +222,10 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
     try {
       const touristName = authenticatedUser?.name || (username === 'subika' ? 'Subika' : 'Sonika');
       const userId = authenticatedUser?.id || `usr_${username}`;
+      const basePriceNum = parseInt(selectedPackage.price.replace(/[^\d]/g, ''), 10) || 8499;
+      const medicalDeposit = 2000;
+      const totalPriceNum = basePriceNum + medicalDeposit;
+      const formattedTotal = `₹${totalPriceNum.toLocaleString('en-IN')}`;
 
       const bookingPayload = {
         user_id: userId,
@@ -234,6 +241,10 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
         booking_details: {
           package_id: selectedPackage.id,
           price: selectedPackage.price,
+          base_price: selectedPackage.price,
+          emergency_medical_deposit: '₹2,000',
+          total_amount: formattedTotal,
+          medical_refund_note: 'Refundable after trip if not used',
           places_count: selectedPackage.places.length,
           booked_at: new Date().toISOString()
         }
@@ -246,13 +257,21 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
         package_title: selectedPackage.title,
         duration: selectedPackage.duration,
         assigned_group: res.data?.assignedGroup?.name || (preferences.walking_preference === 'Fast' ? 'Group Alpha' : preferences.walking_preference === 'Slow' ? 'Group Gamma' : 'Group Beta'),
-        places: selectedPackage.places
+        places: selectedPackage.places,
+        base_price: selectedPackage.price,
+        emergency_medical_deposit: '₹2,000',
+        total_amount: formattedTotal,
+        medical_refund_note: 'Refundable after trip if not used'
       };
 
       // Ensure places is populated
       if (!bookingData.places || bookingData.places.length === 0) {
         bookingData.places = selectedPackage.places;
       }
+      bookingData.base_price = selectedPackage.price;
+      bookingData.emergency_medical_deposit = '₹2,000';
+      bookingData.total_amount = formattedTotal;
+      bookingData.medical_refund_note = 'Refundable after trip if not used';
 
       // Save to localStorage for tourist dashboard personalization
       localStorage.setItem('tourist_active_booking', JSON.stringify({
@@ -261,6 +280,10 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
         package_title: selectedPackage.title,
         duration: selectedPackage.duration,
         places: selectedPackage.places,
+        base_price: selectedPackage.price,
+        emergency_medical_deposit: '₹2,000',
+        total_amount: formattedTotal,
+        medical_refund_note: 'Refundable after trip if not used',
         preferences,
         language: selectedLang
       }));
@@ -346,7 +369,11 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
         package_title: selectedPackage.title,
         duration: selectedPackage.duration,
         assigned_group: preferences.walking_preference === 'Fast' ? 'Group Alpha (Trekkers)' : preferences.walking_preference === 'Slow' ? 'Group Gamma (Leisure)' : 'Group Beta (Explorers)',
-        places: selectedPackage.places
+        places: selectedPackage.places,
+        base_price: selectedPackage.price,
+        emergency_medical_deposit: '₹2,000',
+        total_amount: `₹${((parseInt(selectedPackage.price.replace(/[^\d]/g, ''), 10) || 8499) + 2000).toLocaleString('en-IN')}`,
+        medical_refund_note: 'Refundable after trip if not used'
       };
       localStorage.setItem('tourist_active_booking', JSON.stringify(fallbackBooking));
 
@@ -378,7 +405,7 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
               </div>
               <div>
                 <h3 className="font-extrabold text-sm leading-tight">
-                  Intelligent Tourist Companion
+                  TrailSync Companion
                 </h3>
                 <p className="text-[11px] text-white/80">
                   {step === 1 && 'Step 1 of 4 • Tourist Authentication'}
@@ -434,7 +461,7 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
             <div className="space-y-5">
               <div className="text-center space-y-1">
                 <h4 className="text-lg font-black text-slate-900">
-                  Welcome to Intelligent Tourism
+                  Welcome to TrailSync
                 </h4>
                 <p className="text-xs text-slate-500">
                   Sign in with your designated tourist account to unlock guided tours.
@@ -735,6 +762,34 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
           {/* ========================================================================= */}
           {step === 4 && (
             <div className="space-y-4">
+              {/* Emergency Medical Services Refundable Deposit Info Banner */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-300 text-amber-950 shadow-xs flex items-start space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/25 mt-0.5">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </div>
+                <div className="space-y-1 text-xs flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-amber-600 text-white rounded">
+                        INFO
+                      </span>
+                      <span className="font-extrabold text-amber-950 text-xs">
+                        Emergency Medical Services Deposit (+₹2,000 Extra)
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      100% Refundable
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-900 leading-snug">
+                    An extra <strong>₹2,000</strong> is added during booking for <strong>Emergency Medical Services</strong> coverage.
+                    <span className="block mt-0.5 text-emerald-700 font-bold">
+                      ✓ This will be refunded after the trip if it is not used.
+                    </span>
+                  </p>
+                </div>
+              </div>
+
               <div className="text-center space-y-1">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-1 border border-emerald-200">
                   <Calendar className="w-5 h-5" />
@@ -751,6 +806,8 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
               <div className="space-y-3">
                 {TOUR_PACKAGES.map((pkg) => {
                   const isSelected = selectedPackage.id === pkg.id;
+                  const baseFareNum = parseInt(pkg.price.replace(/[^\d]/g, ''), 10) || 0;
+                  const totalWithMedical = baseFareNum + 2000;
                   return (
                     <div
                       key={pkg.id}
@@ -778,7 +835,12 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
                         </div>
 
                         <div className="text-right">
-                          <span className="text-base font-black text-slate-900">{pkg.price}</span>
+                          <span className="text-base font-black text-slate-900">
+                            ₹{totalWithMedical.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[9px] text-emerald-700 font-bold block">
+                            Base {pkg.price} + ₹2k Medical
+                          </span>
                           <span className="text-[10px] text-slate-400 block line-through">{pkg.originalPrice}</span>
                         </div>
                       </div>
@@ -822,7 +884,7 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
               </div>
 
               {/* Booking Summary Box */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2">
                 <div className="flex justify-between items-center text-slate-700">
                   <span>Selected Package:</span>
                   <strong className="text-slate-900 font-bold">{selectedPackage.title}</strong>
@@ -836,6 +898,29 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
                   <strong className="text-slate-900 font-bold">{authenticatedUser?.name || username}</strong>
                 </div>
                 <div className="flex justify-between items-center text-slate-700">
+                  <span>Tour Base Fare:</span>
+                  <strong className="text-slate-900 font-bold">{selectedPackage.price}</strong>
+                </div>
+                <div className="flex justify-between items-center bg-amber-50/80 border border-amber-200 rounded-xl p-2 text-amber-900">
+                  <div className="flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[11px]">Emergency Medical Services Deposit</div>
+                      <div className="text-[9px] text-emerald-700 font-semibold">✓ 100% Refundable after trip if unused</div>
+                    </div>
+                  </div>
+                  <strong className="font-black text-amber-800 text-xs">+₹2,000</strong>
+                </div>
+                <div className="flex justify-between items-center border-t border-slate-200 pt-2">
+                  <div>
+                    <span className="text-xs font-black text-slate-900">Total Booking Amount:</span>
+                    <span className="text-[10px] text-slate-500 block">Base fare + ₹2,000 Refundable Medical</span>
+                  </div>
+                  <span className="text-base font-black text-blue-600">
+                    ₹{((parseInt(selectedPackage.price.replace(/[^\d]/g, ''), 10) || 0) + 2000).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-slate-700 pt-0.5">
                   <span>Auto-Assigned Group:</span>
                   <strong className="text-emerald-700 font-bold">
                     {preferences.walking_preference === 'Fast' ? 'Group Alpha (Fast Pace)' : preferences.walking_preference === 'Slow' ? 'Group Gamma (Relaxed)' : 'Group Beta (Moderate)'}
@@ -864,7 +949,9 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
                   ) : (
                     <>
                       <Zap className="w-4 h-4 text-amber-300" />
-                      <span>Confirm & Book Tour Now ({selectedPackage.duration})</span>
+                      <span>
+                        Confirm & Book Tour Now • ₹{((parseInt(selectedPackage.price.replace(/[^\d]/g, ''), 10) || 0) + 2000).toLocaleString('en-IN')}
+                      </span>
                     </>
                   )}
                 </button>
@@ -908,6 +995,23 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
                   <span className="font-extrabold text-slate-900">{bookingResult.duration}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                  <span className="text-slate-500">Base Tour Price:</span>
+                  <span className="font-bold text-slate-800">{bookingResult.base_price || selectedPackage.price}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2 bg-amber-50/70 -mx-4 px-4 py-1.5 border-amber-200">
+                  <div>
+                    <span className="font-bold text-amber-900">Emergency Medical Services:</span>
+                    <span className="text-[10px] text-emerald-700 block font-semibold">✓ 100% Refundable after trip if not used</span>
+                  </div>
+                  <span className="font-black text-amber-800">+₹2,000</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2 pt-1">
+                  <span className="font-bold text-slate-900">Total Paid:</span>
+                  <span className="font-extrabold text-base text-blue-600">
+                    {bookingResult.total_amount || `₹${((parseInt(selectedPackage.price.replace(/[^\d]/g, ''), 10) || 0) + 2000).toLocaleString('en-IN')}`}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                   <span className="text-slate-500">Assigned Group:</span>
                   <span className="font-extrabold text-emerald-600">{bookingResult.assigned_group}</span>
                 </div>
@@ -918,6 +1022,14 @@ export default function TouristBookingWizard({ isOpen, onClose, onBookingSuccess
                     <span>Live in Coordinator Center</span>
                   </span>
                 </div>
+              </div>
+
+              {/* Medical Deposit Refund Guarantee Box */}
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-left flex items-start space-x-2.5">
+                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-900 leading-snug">
+                  <strong>Medical Deposit Guarantee:</strong> Your <strong>₹2,000</strong> Emergency Medical Services fee is held on standby. If no emergency medical services are utilized during the tour, this ₹2,000 will be completely refunded after the trip.
+                </p>
               </div>
 
               <div className="pt-2">

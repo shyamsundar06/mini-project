@@ -349,6 +349,17 @@ export default function TouristDashboard() {
             );
           })()}
 
+          {/* Emergency Medical Services Refundable Deposit Tracker */}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] bg-amber-50/70 -mx-5 px-5 py-2 border-amber-100">
+            <span className="text-amber-900 font-bold flex items-center space-x-1.5">
+              <span>🛡️ Emergency Medical Cover:</span>
+              <span className="text-slate-900 font-extrabold">₹2,000</span>
+            </span>
+            <span className="text-emerald-700 font-black bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px]">
+              ✓ Refundable After Trip
+            </span>
+          </div>
+
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
             <span>
               {t('welcome')} <strong className="text-slate-900 font-extrabold">{touristInfo.name}</strong>

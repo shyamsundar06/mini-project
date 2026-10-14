@@ -49,7 +49,7 @@ export default function Register() {
             <Compass className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900">Create Account</h1>
-          <p className="text-xs text-slate-500 font-medium">Join the Intelligent Tourism Management Platform</p>
+          <p className="text-xs text-slate-500 font-medium">Join the TrailSync Tourism Management Platform</p>
         </div>
 
         <div className="glass-panel p-6 rounded-3xl border border-slate-200 space-y-4 shadow-md">

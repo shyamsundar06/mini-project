@@ -1,7 +1,7 @@
 {
-  "name": "intelligent-tourism-platform",
+  "name": "trailsync",
   "version": "1.0.0",
-  "description": "Intelligent Tourism Management Platform with Multi-Agent AI, Live GPS Map, Voice Assistant, and SOS Emergency System",
+  "description": "TrailSync - Intelligent Tourism Management Platform with Multi-Agent AI, Live GPS Map, Voice Assistant, and SOS Emergency System",
   "main": "api/index.js",
   "scripts": {
     "dev:backend": "node backend/server.js",
